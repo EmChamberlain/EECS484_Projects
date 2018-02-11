@@ -123,7 +123,40 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 info.setCommonNameCount(42);
                 return info;
             */
-            return new FirstNameInfo();                // placeholder for compilation
+			
+			ResultSet rst = stmt.executeQuery(
+                "SELECT FIRST_NAME, COUNT(FIRST_NAME) " +   // select first names
+                "FROM " + UsersTable + " " +
+                "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
+                "ORDER BY CHAR_LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC");           // sort by users born in that month, descending; break ties by birth month
+			
+			FirstNameInfo info = new FirstNameInfo();
+			int shortest = rst.getString(1).length();
+			int longest = rst.getString(1).length();
+			int mostFrequent = 0;
+			while(rst.getString(1).length() == shortest) {
+				info.addShortName(rst.getString(1));
+				rst.next();
+			}
+			
+			while(rst.next()) {
+				info.addLongName(rst.getString(1));
+			}
+			
+			ResultSet rst = stmt.executeQuery(
+                "SELECT FIRST_NAME, COUNT(FIRST_NAME) AS NAMECOUNT " +   // select first names
+                "FROM " + UsersTable + " " +
+                "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
+                "ORDER BY NAMECOUNT DESC, FIRST_NAME ASC"); 
+				
+			int maxFreq = rst.getInt(2);
+			info.setCommonNameCount(maxFreq);
+			
+			while(rst.getInt(2) == maxFreq) {
+				info.addCommonName(rst.getString(1));
+				rst.next();
+			}
+            return new info;                // placeholder for compilation
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -150,6 +183,12 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 results.add(u1);
                 results.add(u2);
             */
+			ResultSet rst = stmt.executeQuery(
+                "SELECT USER_ID, FIRST_NAME, LAST_NAME " +   // select first names
+                "FROM " + UsersTable + " " + FriendsTable
+				"WHERE "
+                "GROUP BY USER_ID NOT IN () " +                            // group into buckets by birth month
+                "ORDER BY CHAR_LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC"); 
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
