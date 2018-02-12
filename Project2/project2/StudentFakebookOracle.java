@@ -45,19 +45,19 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 "GROUP BY Month_of_Birth " +                            // group into buckets by birth month
                 "ORDER BY Birthed DESC, Month_of_Birth ASC");           // sort by users born in that month, descending; break ties by birth month
             
-            int mostMonth = 0;
-            int leastMonth = 0;
-            int total = 0;
+            long mostMonth = 0;
+            long leastMonth = 0;
+            long total = 0;
             while (rst.next()) {                       // step through result rows/records one by one
                 if (rst.isFirst()) {                   // if first record
-                    mostMonth = rst.getInt(2);         //   it is the month with the most
+                    mostMonth = rst.getLong(2);         //   it is the month with the most
                 }
                 if (rst.isLast()) {                    // if last record
-                    leastMonth = rst.getInt(2);        //   it is the month with the least
+                    leastMonth = rst.getLong(2);        //   it is the month with the least
                 }
-                total += rst.getInt(1);                // get the first field's value as an integer
+                total += rst.getLong(1);                // get the first field's value as an integer
             }
-            BirthMonthInfo info = new BirthMonthInfo(total, mostMonth, leastMonth);
+            BirthMonthInfo info = new BirthMonthInfo(total, (int)(mostMonth), (int)(leastMonth));
             
             // Step 2
             // ------------
@@ -141,7 +141,7 @@ public final class StudentFakebookOracle extends FakebookOracle {
 			}
 			
 			rst.last();
-			ArrayList<String> temp = new ArrayList<String>();
+			/*ArrayList<String> temp = new ArrayList<String>();
 			
 			while(rst.getString(1).length() == longest) {
 				temp.add(rst.getString(1));
@@ -150,23 +150,23 @@ public final class StudentFakebookOracle extends FakebookOracle {
 			
 			for (int i = temp.size() - 1; i >= 0; --i) {
 				info.addLongName(temp.get(i));
-			}
+			}*/
 			
-			ResultSet rst = stmt.executeQuery(
+			rst = stmt.executeQuery(
                 "SELECT FIRST_NAME, COUNT(FIRST_NAME) AS NAMECOUNT " +   // select first names
                 "FROM " + UsersTable + " " +
                 "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
                 "ORDER BY NAMECOUNT DESC, FIRST_NAME ASC"); 
 				
-			int maxFreq = rst.getInt(2);
+			long maxFreq = rst.getLong(2);
 			info.setCommonNameCount(maxFreq);
 			
-			while (rst.getInt(2) == maxFreq) {
+			while (rst.getLong(2) == maxFreq) {
 				info.addCommonName(rst.getString(1));
 				rst.next();
 			}
 			
-            return new info;                // placeholder for compilation
+            return info;                // placeholder for compilation
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -200,7 +200,7 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 "ORDER BY USER_ID ASC"); 
 				
 			while(rst.next()) {
-                results.add(new UserInfo(rst.getInt(1), rst.getString(2), rst.getString(3)));
+                results.add(new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3)));
             }
         }
         catch (SQLException e) {
@@ -228,8 +228,11 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 results.add(u2);
             */
 
-            ResultSet rst = stmt.executeQuery("SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM USERS U JOIN USER_CURRENT_CITIES CC ON CC.USER_ID = U.USER_ID JOIN USER_HOMETOWN_CITIES HC ON HC.USER_ID = U.USER_ID WHERE CC.CURRENT_CITY_ID != HC.HOMETOWN_CITY_ID"
-                    + " ORDER BY U.USER_ID ASC");
+            ResultSet rst = stmt.executeQuery("SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM " + UsersTable +
+                    " U JOIN " + CurrentCitiesTable + " CC ON CC.USER_ID = U.USER_ID " +
+                    "JOIN " + HometownCitiesTable + " HC ON HC.USER_ID = U.USER_ID " +
+                    "WHERE CC.CURRENT_CITY_ID != HC.HOMETOWN_CITY_ID " +
+                    "ORDER BY U.USER_ID ASC");
             while(rst.next())
             {
                 results.add(new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3)));
@@ -307,6 +310,61 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 mp.addSharedPhoto(p);
                 results.add(mp);
             */
+
+            ResultSet rst1 = stmt.executeQuery(
+                    "SELECT N.USER1_ID, U1.FIRST_NAME, U1.LAST_NAME, U1.YEAR_OF_BIRTH,  " +
+                            "N.USER2_ID, U2.FIRST_NAME, U2.LAST_NAME, U2.YEAR_OF_BIRTH FROM  " +
+                            "( " +
+                            "SELECT DISTINCT T1.TAG_SUBJECT_ID AS USER1_ID, T2.TAG_SUBJECT_ID AS USER2_ID, T1.TAG_PHOTO_ID AS PHOTO_ID FROM " + TagsTable + " T1 " +
+                            "JOIN " + TagsTable + " T2 ON T1.TAG_PHOTO_ID = T2.TAG_PHOTO_ID AND T1.TAG_SUBJECT_ID < T2.TAG_SUBJECT_ID " +
+                            ") N " +
+                            "JOIN " + UsersTable + " U1 ON U1.USER_ID = N.USER1_ID " +
+                            "JOIN " + UsersTable + " U2 ON U2.USER_ID = N.USER2_ID " +
+                            "WHERE U1.GENDER = U2.GENDER " +
+                            "AND NOT EXISTS (SELECT USER1_ID, USER2_ID FROM  " +
+                            "( " +
+                            "(SELECT USER1_ID, USER2_ID FROM " + FriendsTable + " WHERE USER1_ID < USER2_ID) " +
+                            "UNION " +
+                            "(SELECT USER2_ID AS USER1_ID, USER1_ID AS USER2_ID FROM " + FriendsTable + " WHERE USER1_ID > USER2_ID) " +
+                            ") F " +
+                            "WHERE F.USER1_ID = N.USER1_ID AND F.USER2_ID = N.USER2_ID " +
+                            ") " +
+                            "AND ABS(U1.YEAR_OF_BIRTH - U2.YEAR_OF_BIRTH) <= 2 " +
+                            "ORDER BY N.USER1_ID ASC, N.USER2_ID ASC"
+            );
+
+            Statement stmt2 = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
+
+
+
+
+            while(rst1.next())
+            {
+
+                UserInfo u1 = new UserInfo(rst1.getLong(1), rst1.getString(2),rst1.getString(3));
+                UserInfo u2 = new UserInfo(rst1.getLong(5), rst1.getString(6),rst1.getString(7));
+                MatchPair mp = new MatchPair(u1, rst1.getLong(4), u2, rst1.getLong(8));
+
+                long uid1 = rst1.getLong(1);
+                long uid2 = rst1.getLong(5);
+
+                ResultSet rst2 = stmt2.executeQuery(
+                        "SELECT P.PHOTO_ID, P.ALBUM_ID, P.PHOTO_LINK, A.ALBUM_NAME  FROM " + PhotosTable + " P " +
+                                "JOIN " + AlbumsTable + " A ON A.ALBUM_ID = P.ALBUM_ID " +
+                                "JOIN " + TagsTable + " T1 ON T1.TAG_PHOTO_ID = P.PHOTO_ID " +
+                                "JOIN " + TagsTable + " T2 ON T2.TAG_PHOTO_ID = P.PHOTO_ID AND T1.TAG_SUBJECT_ID < T2.TAG_SUBJECT_ID " +
+                                "WHERE T1.TAG_SUBJECT_ID = " + uid1 + " AND T2.TAG_SUBJECT_ID = " + uid2
+                );
+
+                while(rst2.next())
+                {
+                    mp.addSharedPhoto(new PhotoInfo(rst2.getLong(1), rst2.getLong(2), rst2.getString(3), rst2.getString(4)));
+                }
+                results.add(mp);
+            }
+
+
+
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -361,7 +419,27 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 info.addState("New Hampshire");
                 return info;
             */
-            return new EventStateInfo(-1);                // placeholder for compilation
+
+            ResultSet rst = stmt.executeQuery(
+                            "SELECT STATE_NAME, COUNT(STATE_NAME) AS NUM FROM " + CitiesTable + " C " +
+                                    "JOIN " + EventsTable + " E ON E.EVENT_CITY_ID = C.CITY_ID " +
+                                    "GROUP BY STATE_NAME " +
+                                    "ORDER BY NUM DESC"
+            );
+
+            rst.first();
+            long max = rst.getLong(2);
+            EventStateInfo info = new EventStateInfo(max);
+            info.addState(rst.getString(1));
+            while(rst.next())
+            {
+                if (rst.getLong(2) < max)
+                    break;
+                info.addState(rst.getString(1));
+            }
+
+
+            return info;               // placeholder for compilation
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -385,7 +463,36 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 UserInfo young = new UserInfo(80000000, "Neil", "deGrasse Tyson");
                 return new AgeInfo(old, young);
             */
-            return new AgeInfo(new UserInfo(-1, "UNWRITTEN", "UNWRITTEN"), new UserInfo(-1, "UNWRITTEN", "UNWRITTEN"));                // placeholder for compilation
+            String nested = "((SELECT USER1_ID AS USER_ID FROM " + FriendsTable + " WHERE USER2_ID = " + userID + ") " +
+                            "UNION " +
+                            "(SELECT USER2_ID AS USER_ID FROM " + FriendsTable + " WHERE USER1_ID = " + userID + ")" +
+                            ")";
+            ResultSet rst = stmt.executeQuery("SELECT N.USER_ID, U.FIRST_NAME, U.LAST_NAME, U.YEAR_OF_BIRTH, U.MONTH_OF_BIRTH, U.DAY_OF_BIRTH " +
+                                    "FROM " + nested + " N " +
+                                    "JOIN " + UsersTable + " U ON N.USER_ID = U.USER_ID " +
+                                    "ORDER BY U.YEAR_OF_BIRTH ASC, U.MONTH_OF_BIRTH ASC, U.DAY_OF_BIRTH ASC, U.USER_ID DESC");
+            rst.first();
+            UserInfo old = new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3));
+
+            rst.last();
+
+            long userid = rst.getLong(1);
+            String first = rst.getString(2);
+            String last = rst.getString(3);
+            long year = rst.getLong(4);
+            long month = rst.getLong(5);
+            long day = rst.getLong(6);
+            rst.previous();
+            while(rst.getLong(4) == year && rst.getLong(5) == month && rst.getLong(6) == day)
+            {
+                userid = rst.getLong(1);
+                first = rst.getString(2);
+                last = rst.getString(3);
+                rst.previous();
+            }
+            UserInfo young = new UserInfo(userid, first, last);
+
+            return new AgeInfo(old, young);                // placeholder for compilation
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -413,6 +520,33 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 SiblingInfo si = new SiblingInfo(u1, u2);
                 results.add(si);
             */
+
+
+            ResultSet rst = stmt.executeQuery(
+                        "SELECT F.USER1_ID, U1.FIRST_NAME, U1.LAST_NAME, F.USER2_ID, U2.FIRST_NAME, U2.LAST_NAME FROM  " +
+                        "( " +
+                        "(SELECT USER1_ID, USER2_ID FROM " + FriendsTable + " WHERE USER1_ID < USER2_ID) " +
+                        "UNION " +
+                        "(SELECT USER2_ID AS USER1_ID, USER1_ID AS USER2_ID FROM " + FriendsTable + " WHERE USER1_ID > USER2_ID) " +
+                        ") " +
+                        "F " +
+                        "JOIN USERS U1 ON U1.USER_ID = F.USER1_ID " +
+                        "JOIN USERS U2 ON U2.USER_ID = F.USER2_ID " +
+                        "JOIN " + HometownCitiesTable + " HC1 ON HC1.USER_ID = U1.USER_ID " +
+                        "JOIN " + HometownCitiesTable + " HC2 ON HC2.USER_ID = U2.USER_ID " +
+                        "WHERE HC1.HOMETOWN_CITY_ID = HC2.HOMETOWN_CITY_ID " +
+                        "AND U1.LAST_NAME = U2.LAST_NAME " +
+                        "AND ABS(U1.YEAR_OF_BIRTH - U2.YEAR_OF_BIRTH) < 10 " +
+                        "ORDER BY F.USER1_ID ASC, F.USER2_ID ASC"
+            );
+            while(rst.next())
+            {
+                UserInfo u1 = new UserInfo(rst.getLong(1), rst.getString(2),rst.getString(3));
+                UserInfo u2 = new UserInfo(rst.getLong(4), rst.getString(5), rst.getString(6));
+                results.add(new SiblingInfo(u1, u2));
+            }
+
+
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
