@@ -128,19 +128,28 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 "SELECT FIRST_NAME, COUNT(FIRST_NAME) " +   // select first names
                 "FROM " + UsersTable + " " +
                 "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
-                "ORDER BY CHAR_LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC");           // sort by users born in that month, descending; break ties by birth month
+                "ORDER BY LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC");           // sort by users born in that month, descending; break ties by birth month
 			
 			FirstNameInfo info = new FirstNameInfo();
 			int shortest = rst.getString(1).length();
+			rst.last();
 			int longest = rst.getString(1).length();
-			int mostFrequent = 0;
+			
 			while(rst.getString(1).length() == shortest) {
 				info.addShortName(rst.getString(1));
 				rst.next();
 			}
 			
-			while(rst.next()) {
-				info.addLongName(rst.getString(1));
+			rst.last();
+			ArrayList<String> temp = new ArrayList<String>();
+			
+			while(rst.getString(1).length() == longest) {
+				temp.add(rst.getString(1));
+				rst.previous();
+			}
+			
+			for (int i = temp.size() - 1; i >= 0; --i) {
+				info.addLongName(temp.get(i));
 			}
 			
 			ResultSet rst = stmt.executeQuery(
@@ -152,10 +161,11 @@ public final class StudentFakebookOracle extends FakebookOracle {
 			int maxFreq = rst.getInt(2);
 			info.setCommonNameCount(maxFreq);
 			
-			while(rst.getInt(2) == maxFreq) {
+			while (rst.getInt(2) == maxFreq) {
 				info.addCommonName(rst.getString(1));
 				rst.next();
 			}
+			
             return new info;                // placeholder for compilation
         }
         catch (SQLException e) {
@@ -184,11 +194,16 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 results.add(u2);
             */
 			ResultSet rst = stmt.executeQuery(
-                "SELECT USER_ID, FIRST_NAME, LAST_NAME " +   // select first names
-                "FROM " + UsersTable + " " + FriendsTable
-				"WHERE "
-                "GROUP BY USER_ID NOT IN () " +                            // group into buckets by birth month
-                "ORDER BY CHAR_LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC"); 
+                "SELECT USER_ID, FIRST_NAME, LAST_NAME " +
+                "FROM " + UsersTable + " " +
+				"WHERE USER_ID NOT IN (SELECT USER1_ID FROM " + FriendsTable + ") AND USER_ID NOT IN (SELECT USER2_ID FROM " + FriendsTable + ") " +
+                "ORDER BY USER_ID ASC"); 
+				
+			FakebookArrayList<UserInfo> info = new FakebookArrayList<UserInfo>();
+			while(rst.next()) {
+				info.add(new UserInfo(rst.getInt(1), rst.getString(2), rst.getString(3)));
+			}
+			return info;
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -214,6 +229,9 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 results.add(u1);
                 results.add(u2);
             */
+			
+			ResultSet rst = stmt.executeQuery(
+				)
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -246,6 +264,13 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 tp.addTaggedUser(u3);
                 results.add(tp);
             */
+			
+			ResultSet rst = stmt.executeQuery(
+				"SELECT P.PHOTO_ID, P.PHOTO_LINK, A.ALBUM_ID, A.ALBUM_NAME, COUNT(*) AS NumTags " + 
+				"FROM Photos AS P INNER JOIN Albums AS A ON P.ALBUM_NAME = A.ALBUM_NAME " +
+				"LEFT JOIN Tags AS T ON T.TAG_PHOTO_ID = P.PHOTO_ID " +
+				"GROUP BY P.PHOTO_ID " +
+				"ORDER BY NumTags ");
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
