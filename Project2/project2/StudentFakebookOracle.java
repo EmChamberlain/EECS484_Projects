@@ -199,11 +199,9 @@ public final class StudentFakebookOracle extends FakebookOracle {
 				"WHERE USER_ID NOT IN (SELECT USER1_ID FROM " + FriendsTable + ") AND USER_ID NOT IN (SELECT USER2_ID FROM " + FriendsTable + ") " +
                 "ORDER BY USER_ID ASC"); 
 				
-			FakebookArrayList<UserInfo> info = new FakebookArrayList<UserInfo>();
 			while(rst.next()) {
-				info.add(new UserInfo(rst.getInt(1), rst.getString(2), rst.getString(3)));
-			}
-			return info;
+                results.add(new UserInfo(rst.getInt(1), rst.getString(2), rst.getString(3)));
+            }
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
@@ -229,9 +227,13 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 results.add(u1);
                 results.add(u2);
             */
-			
-			ResultSet rst = stmt.executeQuery(
-				)
+
+            ResultSet rst = stmt.executeQuery("SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM USERS U JOIN USER_CURRENT_CITIES CC ON CC.USER_ID = U.USER_ID JOIN USER_HOMETOWN_CITIES HC ON HC.USER_ID = U.USER_ID WHERE CC.CURRENT_CITY_ID != HC.HOMETOWN_CITY_ID"
+                    + " ORDER BY U.USER_ID ASC");
+            while(rst.next())
+            {
+                results.add(new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3)));
+            }
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
