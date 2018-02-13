@@ -421,6 +421,112 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 up.addSharedFriend(u3);
                 results.add(up);
             */
+
+            String view = "CREATE VIEW FVIEW AS\n" +
+                    "(SELECT USER1_ID, USER2_ID FROM " +  FriendsTable + " WHERE USER1_ID < USER2_ID)\n" +
+                    "UNION\n" +
+                    "(SELECT USER2_ID AS USER1_ID, USER1_ID AS USER2_ID FROM " +  FriendsTable + " WHERE USER1_ID > USER2_ID)";
+            String mutualView = "CREATE VIEW MUTUALVIEW AS \n" +
+                    "(\n" +
+                    "(\n" +
+                    "SELECT DISTINCT A.USER1_ID AS A_ID, A.USER2_ID AS B_ID, C.USER2_ID AS C_ID FROM FVIEW A\n" +
+                    "JOIN FVIEW C ON A.USER2_ID = C.USER1_ID AND A.USER1_ID < C.USER2_ID\n" +
+                    ")\n" +
+                    "UNION\n" +
+                    "(\n" +
+                    "SELECT DISTINCT A.USER2_ID AS A_ID, A.USER1_ID AS B_ID, C.USER2_ID AS C_ID FROM FVIEW A\n" +
+                    "JOIN FVIEW C ON A.USER1_ID = C.USER1_ID AND A.USER2_ID < C.USER2_ID\n" +
+                    ")\n" +
+                    "UNION\n" +
+                    "(\n" +
+                    "SELECT DISTINCT C.USER2_ID AS A_ID, A.USER1_ID AS B_ID, A.USER2_ID AS C_ID FROM FVIEW A\n" +
+                    "JOIN FVIEW C ON A.USER1_ID = C.USER1_ID AND C.USER2_ID < A.USER2_ID\n" +
+                    "JOIN FVIEW C ON A.USER1_ID = C.USER1_ID AND C.USER2_ID < A.USER2_ID\n" +
+                    ")\n" +
+                    "UNION\n" +
+                    "(\n" +
+                    "SELECT DISTINCT A.USER1_ID AS A_ID, A.USER2_ID AS B_ID, C.USER1_ID AS C_ID FROM FVIEW A\n" +
+                    "JOIN FVIEW C ON A.USER2_ID = C.USER2_ID AND A.USER1_ID < C.USER1_ID\n" +
+                    ")\n" +
+                    "UNION\n" +
+                    "(\n" +
+                    "SELECT DISTINCT C.USER1_ID AS A_ID, A.USER2_ID AS B_ID, A.USER1_ID AS C_ID FROM FVIEW A\n" +
+                    "JOIN FVIEW C ON A.USER2_ID = C.USER2_ID AND C.USER1_ID < A.USER1_ID\n" +
+                    ")\n" +
+                    ")";
+
+
+            String dropView = "DROP VIEW FVIEW";
+            String dropMutualView = "DROP VIEW MUTUALVIEW";
+            String mutualFriends = "SELECT A_ID, C_ID FROM MUTUALVIEW\n" +
+                    "GROUP BY A_ID, C_ID\n" +
+                    "ORDER BY COUNT(B_ID) DESC, A_ID ASC, C_ID ASC";
+
+            String userInfo = "SELECT USER_ID, FIRST_NAME, LAST_NAME FROM " +  UsersTable + " \n" +
+                    "WHERE USER_ID = ";
+
+
+
+            ResultSet viewst = stmt.executeQuery(view);
+            viewst = stmt.executeQuery(mutualView);
+
+            Statement mutualstmt = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
+            ResultSet mutualst = mutualstmt.executeQuery(mutualFriends);
+
+
+            Statement innerstmt = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
+            Statement inner2stmt = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
+
+            int count = 0;
+            while(mutualst.next() && count++ < num)
+            {
+                long aid = mutualst.getLong(1);
+                long cid = mutualst.getLong(2);
+
+                ResultSet rst = innerstmt.executeQuery(
+                        "SELECT USER1_ID FROM FVIEW\n" +
+                                "WHERE USER1_ID = " + aid + " AND USER2_ID = " + cid
+                );
+                if(rst.next())
+                {
+                    count--;
+                    continue;
+                }
+
+
+                rst = innerstmt.executeQuery(userInfo + aid);
+                rst.first();
+                UserInfo u1 = new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3));
+
+                rst = innerstmt.executeQuery(userInfo + cid);
+                rst.first();
+                UserInfo u2 = new UserInfo(rst.getLong(1), rst.getString(2), rst.getString(3));
+
+                UsersPair up = new UsersPair(u1, u2);
+                rst = innerstmt.executeQuery(
+                        "SELECT B_ID FROM MUTUALVIEW\n" +
+                                "WHERE A_ID = " + aid + " AND C_ID = " + cid +
+                                "ORDER BY B_ID ASC"
+                );
+                while(rst.next())
+                {
+                    long id = rst.getLong(1);
+
+                    ResultSet innerrst = inner2stmt.executeQuery(userInfo + id);
+                    while(innerrst.next())
+                    {
+                        up.addSharedFriend(new UserInfo(innerrst.getLong(1), innerrst.getString(2), innerrst.getString(3)));
+                    }
+
+                }
+                results.add(up);
+            }
+
+
+
+            viewst = stmt.executeQuery(dropView);
+            viewst = stmt.executeQuery(dropMutualView);
+
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
