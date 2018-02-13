@@ -269,14 +269,14 @@ public final class StudentFakebookOracle extends FakebookOracle {
             Statement stmt1 = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
 
 			ResultSet rst = stmt.executeQuery(
-			        "SELECT T.TAG_PHOTO_ID AS PHOTO_ID FROM TAGS T " +
+			        "SELECT T.TAG_PHOTO_ID AS PHOTO_ID FROM " +  TagsTable + " T " +
                             "GROUP BY T.TAG_PHOTO_ID " +
                             "ORDER BY COUNT(T.TAG_PHOTO_ID) DESC, T.TAG_PHOTO_ID ASC"
             );
 
 
-            String photoDetails = "SELECT A.ALBUM_ID, P.PHOTO_LINK, A.ALBUM_NAME FROM PHOTOS P " +
-                    "JOIN ALBUMS A ON A.ALBUM_ID = P.ALBUM_ID " +
+            String photoDetails = "SELECT A.ALBUM_ID, P.PHOTO_LINK, A.ALBUM_NAME FROM " + PhotosTable + " P " +
+                    "JOIN " + AlbumsTable + " A ON A.ALBUM_ID = P.ALBUM_ID " +
                     "WHERE P.PHOTO_ID = ";
             int counter = 0;
             while(rst.next() && (counter++ < num))
@@ -287,8 +287,8 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 PhotoInfo p = new PhotoInfo(pid, rst1.getLong(1), rst1.getString(2), rst1.getString(3));
 
                 rst1 = stmt1.executeQuery(
-                        "SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM TAGS T " +
-                                "JOIN USERS U ON U.USER_ID = T.TAG_SUBJECT_ID " +
+                        "SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM " + TagsTable + " T " +
+                                "JOIN " + UsersTable + " U ON U.USER_ID = T.TAG_SUBJECT_ID " +
                                 "WHERE T.TAG_PHOTO_ID = " + pid +
                                 "ORDER BY U.USER_ID ASC"
                 );
@@ -662,8 +662,8 @@ public final class StudentFakebookOracle extends FakebookOracle {
                         "(SELECT USER2_ID AS USER1_ID, USER1_ID AS USER2_ID FROM " + FriendsTable + " WHERE USER1_ID > USER2_ID) " +
                         ") " +
                         "F " +
-                        "JOIN USERS U1 ON U1.USER_ID = F.USER1_ID " +
-                        "JOIN USERS U2 ON U2.USER_ID = F.USER2_ID " +
+                        "JOIN " + UsersTable + " U1 ON U1.USER_ID = F.USER1_ID " +
+                        "JOIN " + UsersTable + " U2 ON U2.USER_ID = F.USER2_ID " +
                         "JOIN " + HometownCitiesTable + " HC1 ON HC1.USER_ID = U1.USER_ID " +
                         "JOIN " + HometownCitiesTable + " HC2 ON HC2.USER_ID = U2.USER_ID " +
                         "WHERE HC1.HOMETOWN_CITY_ID = HC2.HOMETOWN_CITY_ID " +
