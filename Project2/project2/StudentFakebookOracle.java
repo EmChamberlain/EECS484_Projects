@@ -129,42 +129,39 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 "FROM " + UsersTable + " " +
                 "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
                 "ORDER BY LENGTH(FIRST_NAME) ASC, FIRST_NAME ASC");           // sort by users born in that month, descending; break ties by birth month
-			
+
+            rst.first();
 			FirstNameInfo info = new FirstNameInfo();
 			int shortest = rst.getString(1).length();
-			rst.last();
-			int longest = rst.getString(1).length();
 			
 			while(rst.getString(1).length() == shortest) {
 				info.addShortName(rst.getString(1));
 				rst.next();
 			}
-			
-			rst.last();
-			/*ArrayList<String> temp = new ArrayList<String>();
-			
-			while(rst.getString(1).length() == longest) {
-				temp.add(rst.getString(1));
-				rst.previous();
-			}
-			
-			for (int i = temp.size() - 1; i >= 0; --i) {
-				info.addLongName(temp.get(i));
-			}*/
+
+            rst = stmt.executeQuery(
+                    "SELECT FIRST_NAME, COUNT(FIRST_NAME) " +   // select first names
+                            "FROM " + UsersTable + " " +
+                            "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
+                            "ORDER BY LENGTH(FIRST_NAME) DESC, FIRST_NAME ASC");           // sort by users born in that month, descending; break ties by birth month
+            rst.first();
+            int longest = rst.getString(1).length();
+
+            while(rst.getString(1).length() == longest) {
+                info.addLongName(rst.getString(1));
+                rst.next();
+            }
 			
 			rst = stmt.executeQuery(
                 "SELECT FIRST_NAME, COUNT(FIRST_NAME) AS NAMECOUNT " +   // select first names
                 "FROM " + UsersTable + " " +
                 "GROUP BY FIRST_NAME " +                            // group into buckets by birth month
                 "ORDER BY NAMECOUNT DESC, FIRST_NAME ASC"); 
-				
+            rst.first();
 			long maxFreq = rst.getLong(2);
 			info.setCommonNameCount(maxFreq);
-			
-			while (rst.getLong(2) == maxFreq) {
-				info.addCommonName(rst.getString(1));
-				rst.next();
-			}
+			info.addCommonName(rst.getString(1));
+
 			
             return info;                // placeholder for compilation
         }
@@ -275,7 +272,7 @@ public final class StudentFakebookOracle extends FakebookOracle {
 				"FROM Photos AS P INNER JOIN Albums AS A ON P.ALBUM_NAME = A.ALBUM_NAME " +
 				"LEFT JOIN Tags AS T ON T.TAG_PHOTO_ID = P.PHOTO_ID " +
 				"GROUP BY P.PHOTO_ID " +
-				"ORDER BY NumTags ");
+				"ORDER BY NumTags");
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
