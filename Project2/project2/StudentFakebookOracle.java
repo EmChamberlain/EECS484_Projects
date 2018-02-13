@@ -266,13 +266,42 @@ public final class StudentFakebookOracle extends FakebookOracle {
                 tp.addTaggedUser(u3);
                 results.add(tp);
             */
-			
+            Statement stmt1 = oracle.createStatement(FakebookOracleConstants.AllScroll, FakebookOracleConstants.ReadOnly);
+
 			ResultSet rst = stmt.executeQuery(
-				"SELECT P.PHOTO_ID, P.PHOTO_LINK, A.ALBUM_ID, A.ALBUM_NAME, COUNT(*) AS NumTags " + 
-				"FROM Photos AS P INNER JOIN Albums AS A ON P.ALBUM_NAME = A.ALBUM_NAME " +
-				"LEFT JOIN Tags AS T ON T.TAG_PHOTO_ID = P.PHOTO_ID " +
-				"GROUP BY P.PHOTO_ID " +
-				"ORDER BY NumTags");
+			        "SELECT T.TAG_PHOTO_ID AS PHOTO_ID FROM TAGS T " +
+                            "GROUP BY T.TAG_PHOTO_ID " +
+                            "ORDER BY COUNT(T.TAG_PHOTO_ID) DESC, T.TAG_PHOTO_ID ASC"
+            );
+
+
+            String photoDetails = "SELECT A.ALBUM_ID, P.PHOTO_LINK, A.ALBUM_NAME FROM PHOTOS P " +
+                    "JOIN ALBUMS A ON A.ALBUM_ID = P.ALBUM_ID " +
+                    "WHERE P.PHOTO_ID = ";
+            int counter = 0;
+            while(rst.next() && (counter++ < num))
+            {
+                long pid = rst.getLong(1);
+                ResultSet rst1 = stmt1.executeQuery(photoDetails + pid);
+                rst1.first();
+                PhotoInfo p = new PhotoInfo(pid, rst1.getLong(1), rst1.getString(2), rst1.getString(3));
+
+                rst1 = stmt1.executeQuery(
+                        "SELECT U.USER_ID, U.FIRST_NAME, U.LAST_NAME FROM TAGS T " +
+                                "JOIN USERS U ON U.USER_ID = T.TAG_SUBJECT_ID " +
+                                "WHERE T.TAG_PHOTO_ID = " + pid +
+                                "ORDER BY U.USER_ID ASC"
+                );
+                TaggedPhotoInfo tp = new TaggedPhotoInfo(p);
+                while(rst1.next())
+                {
+                    tp.addTaggedUser(new UserInfo(rst1.getLong(1), rst1.getString(2), rst1.getString(3)));
+                }
+                results.add(tp);
+            }
+
+
+
         }
         catch (SQLException e) {
             System.err.println(e.getMessage());
