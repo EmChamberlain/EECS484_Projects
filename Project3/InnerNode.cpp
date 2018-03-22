@@ -174,7 +174,7 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 
 		//inserts new key in order
 		keys.insert(lb, key);
-
+		children.insert(children.begin() + index + 1, newChild);
 		Key temp = keys[threshold];
 
 		vector<Key> newKeys;
@@ -187,11 +187,12 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 			newKeys.emplace_back(std::move(keys[threshold + i]));
 			newChildren.emplace_back(std::move(children[threshold + i]));
 		}
+		newChildren.emplace_back(std::move(children[children.size() - 1]));
 		//deletes keys and children that were just moved
 		keys.erase(keys.begin() + threshold, keys.end());
 		children.erase(children.begin() + threshold + 1, children.end());
 
-		if (index < threshold) {
+		/*if (index < threshold) { //this line is bad
 			//add child to left-most node
 			auto lb = std::lower_bound(keys.begin(), keys.end(), key);
 			index = std::distance(keys.begin(), lb);
@@ -208,7 +209,7 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 				newChildren.insert(newChildren.begin() + index + 1, newChild);
 			else
 				newChildren.insert(newChildren.begin() + index, newChild);
-		}
+		}*/
 		if (getParent()) {
 			//node has parent
 			InnerNode* newSibling = new InnerNode(newChildren, newKeys, getParent());
