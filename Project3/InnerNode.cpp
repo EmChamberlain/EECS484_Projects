@@ -127,10 +127,10 @@ void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
 	 *  is the right-most child?
 	 */
 	assert(rightDescendant != nullptr);
-	for (unsigned i = 0; i < children.size(); ++i) {
-		if (this->contains(rightDescendant)) {
-			keys[i] = newKey;
-			break;
+	for (unsigned i = 1; i < children.size(); ++i) {
+		if (children[i] == rightDescendant) {
+			keys[i-1] = newKey;
+			return;
 		}
 	}
 }
@@ -163,6 +163,8 @@ void InnerNode::deleteEntry(const DataEntry& entryToRemove) {
 	Key comp = entryToRemove;
 	auto lb = std::lower_bound(keys.begin(), keys.end(), comp);
 	int index = std::distance(keys.begin(), lb);
+	if (lb != keys.end() && *lb == comp)
+		index++;
 	children[index]->deleteEntry(entryToRemove);
 }
 
@@ -218,31 +220,35 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		children.insert(children.begin() + index, newChild);
 	}
 }
+bool redistribute(vector<Key> &need, vector<Key> &has) {
 
-void InnerNode::deleteChild(TreeNode* childToRemove) {
-    // TO DO: implement this function
-	return;
-}
+	
+	if (has.size() > kLeafOrder)
+	{
+		if (*need.begin() > *has.begin())
+		{
+			need.insert(need.begin(), *(has.end() - 1));
+			has.erase(has.end() - 1);
+		}
+		else
+		{
+			need.insert(need.end(), *(has.begin()));
+			has.erase(has.begin());
+		}
 
-bool InnerNode::full() const {
-	return (int)keys.size() == kInnerOrder * 2;
-}
-
-void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
-	dst.reserve(dst.size() + src.size());
-	for (unsigned i = 0; i < src.size(); ++i) {
-		dst.emplace_back(src[i]);
+		return true;
 	}
+	return false;
 }
 
-vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
+vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 	auto l = left.begin();
 	auto r = right.begin();
 
 	auto le = left.end();
 	auto re = right.end();
 
-	std::vector<DataEntry> result;
+	std::vector<Key> result;
 	result.reserve(left.size() + right.size());
 
 	while (l != le && r != re) {
@@ -260,3 +266,109 @@ vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
 
 	return result;
 }
+vector<TreeNode*> mergeChildren(vector<TreeNode*> &left, vector<TreeNode*> &right) {
+	auto l = left.begin();
+	auto r = right.begin();
+
+	auto le = left.end();
+	auto re = right.end();
+
+	std::vector<TreeNode*> result;
+	result.reserve(left.size() + right.size());
+
+
+	while (l != le)
+		result.push_back(*l++);
+
+	while (r != re)
+		result.push_back(*r++);
+
+	return result;
+}
+void InnerNode::deleteChild(TreeNode* childToRemove) {
+    // TO DO: implement this function
+	int childIndex = 0;
+	for (unsigned i = 0; i < children.size(); ++i) {
+		if (children[i] == childToRemove) {
+			childIndex = i;
+			break;
+		}
+	}
+	
+	children.erase(children.begin() + childIndex);
+	if (childIndex == 0)
+	{
+		keys.erase(keys.begin());
+	}
+	else
+	{
+		keys.erase(keys.begin() + (childIndex - 1));
+	}
+	if (keys.size() < kLeafOrder) {
+		//need to redistribute or merge
+		InnerNode *rightNeighbor = nullptr;
+		InnerNode *leftNeighbor = nullptr;
+		auto parentChildren = getParent()->children;
+		for (int i = 0; i < parentChildren.size(); i++)
+		{
+			if(parentChildren[i] == this)
+			{
+				if (i != 0)
+					leftNeighbor = (InnerNode*)parentChildren[i - 1];
+				if(i != parentChildren.size() - 1)
+					rightNeighbor = (InnerNode*)parentChildren[i + 1];
+				break;
+			}
+		}
+	
+		if (rightNeighbor && redistribute(keys, rightNeighbor->keys))
+		{
+			auto beg = rightNeighbor->children.begin();
+			children.insert(children.end(), *beg);
+			rightNeighbor->children.erase(beg);
+			getParent()->updateKey(rightNeighbor, rightNeighbor->keys[0]);
+			return;
+		}
+		
+		if (leftNeighbor && redistribute(keys, leftNeighbor->keys))
+		{
+			auto beg = children.begin();
+			leftNeighbor->children.insert(leftNeighbor->children.end(), *beg);
+			children.erase(beg);
+			getParent()->updateKey(this, this->keys[0]);
+			return;
+		}
+		if (rightNeighbor)
+		{
+			vector<Key> mergedKeys = merge(keys, rightNeighbor->keys);
+			vector<TreeNode*> mergedChildren = mergeChildren(children, rightNeighbor->children);
+			keys = mergedKeys;
+			children = mergedChildren;
+			getParent()->deleteChild(rightNeighbor);
+		}
+		else
+		{
+			vector<Key> mergedKeys = merge(leftNeighbor->keys, keys);
+			vector<TreeNode*> mergedChildren = mergeChildren(leftNeighbor->children, children);
+			leftNeighbor->keys = mergedKeys;
+			leftNeighbor->children = mergedChildren;
+			getParent()->deleteChild(this);
+		}
+		
+
+	}
+	
+	return;
+}
+
+bool InnerNode::full() const {
+	return (int)keys.size() == kInnerOrder * 2;
+}
+
+void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
+	dst.reserve(dst.size() + src.size());
+	for (unsigned i = 0; i < src.size(); ++i) {
+		dst.emplace_back(src[i]);
+	}
+}
+

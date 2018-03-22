@@ -126,20 +126,91 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		entries.insert(lb, newEntry);
 	}
 }
+bool redistribute(vector<DataEntry> &need, vector<DataEntry> &has) {
+	
+
+	if (has.size() > kLeafOrder)
+	{
+		if(*need.begin() > *has.begin())
+		{
+			need.insert(need.begin(), *(has.end() - 1));
+			has.erase(has.end() - 1);
+		}
+		else
+		{
+			need.insert(need.end(), *(has.begin()));
+			has.erase(has.begin());
+		}
+		
+		return true;
+	}
+	return false;
+}
+
+vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
+	auto l = left.begin();
+	auto r = right.begin();
+
+	auto le = left.end();
+	auto re = right.end();
+
+	std::vector<DataEntry> result;
+	result.reserve(left.size() + right.size());
+
+	while (l != le && r != re) {
+		if (*l < *r)
+			result.push_back(*l++);
+		else
+			result.push_back(*r++);
+	}
+
+	while (l != le)
+		result.push_back(*l++);
+
+	while (r != re)
+		result.push_back(*r++);
+
+	return result;
+}
 
 void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
     // TO DO: implement this function
-	if (entries.size() == kLeafOrder) {
-		//need to merge
-		goto skipForNow; //will implement merging later
+
+	auto lb = std::lower_bound(entries.begin(), entries.end(), entryToRemove);
+	entries.erase(lb);
+
+	if (entries.size() < kLeafOrder) {
+		//need to redistribute or merge
+		if (rightNeighbor && redistribute(entries, rightNeighbor->entries))
+		{
+			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
+			return;
+		}
+			
+		if (leftNeighbor && redistribute(entries, leftNeighbor->entries))
+		{
+			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
+			return;
+		}
+		if (rightNeighbor)
+		{
+			vector<DataEntry> merged = merge(entries, rightNeighbor->entries);
+			entries = merged;
+			getParent()->deleteChild(rightNeighbor);
+		}
+		else
+		{
+			vector<DataEntry> merged = merge(entries, leftNeighbor->entries);
+			leftNeighbor->entries = merged;
+			getParent()->deleteChild(this);
+		}
+		
 
 	}
-	else {
-	skipForNow:
-		auto lb = std::lower_bound(entries.begin(), entries.end(), entryToRemove);
-		entries.erase(lb);
-	}
+	
 }
+
+
 
 bool LeafNode::full() const {
 	return (int)entries.size() == kLeafOrder * 2;

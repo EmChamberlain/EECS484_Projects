@@ -1,0 +1,90 @@
+insert 10
+insert 20
+insert 30
+insert 40
+insert 50
+insert 15
+insert 11
+insert 9
+insert 8
+insert 6
+insert 7
+insert 2
+insert 4
+insert 5
+insert 3
+insert 110
+insert 60
+insert 61
+insert 62
+insert 89
+insert 54
+insert 32
+insert 21
+insert 111
+insert 156
+insert 253
+insert 233
+insert 558
+insert 37
+insert 90
+insert 77
+insert 88
+insert 99
+insert 95
+insert 11
+insert 82
+insert 13
+insert 89
+insert 900
+insert 1
+print
+find 11 200
+delete 10
+print
+delete 20
+print
+delete 30
+print
+delete 40
+print
+delete 50
+print
+delete 15
+print
+delete 11
+delete 9
+delete 8
+delete 6
+delete 7
+delete 2
+delete 4
+delete 5
+delete 3
+delete 110
+delete 60
+delete 61
+delete 62
+delete 89
+delete 54
+delete 32
+delete 21
+delete 111
+delete 156
+delete 253
+delete 233
+delete 558
+delete 37
+delete 90
+delete 77
+delete 88
+delete 99
+delete 95
+delete 11
+delete 82
+delete 13
+delete 89
+delete 900
+delete 1
+print
+quit
