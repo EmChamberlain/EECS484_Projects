@@ -143,7 +143,6 @@ TreeNode* InnerNode::deleteFromRoot(const DataEntry& entryToRemove) {
 }
 
 void InnerNode::insertEntry(const DataEntry& newEntry) {
-	// TO DO: implement this function
 	Key comp = newEntry;
 	auto lb = std::lower_bound(keys.begin(), keys.end(), comp);
 	int index = std::distance(keys.begin(), lb);
@@ -155,7 +154,6 @@ void InnerNode::insertEntry(const DataEntry& newEntry) {
 }
 
 void InnerNode::deleteEntry(const DataEntry& entryToRemove) {
-    // TO DO: implement this function
 	Key comp = entryToRemove;
 	auto lb = std::lower_bound(keys.begin(), keys.end(), comp);
 	int index = std::distance(keys.begin(), lb);
@@ -163,7 +161,6 @@ void InnerNode::deleteEntry(const DataEntry& entryToRemove) {
 }
 
 void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
-    // TO DO: implement this function
 	newChild->updateParent(this);
 	if (this->full()) {
 		//must split

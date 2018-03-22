@@ -72,7 +72,6 @@ const DataEntry& LeafNode::operator[](const Key& key) const {
 }
 
 vector<DataEntry> LeafNode::rangeFind(const Key& begin, const Key& end) const {
-    // TO DO: implement this function
 	vector<DataEntry> result;
 	result.reserve(entries.size());
 	for (unsigned i = 0; i < entries.size(); ++i) {
@@ -96,7 +95,6 @@ TreeNode* LeafNode::deleteFromRoot(const DataEntry& entryToRemove) {
 }
 
 void LeafNode::insertEntry(const DataEntry& newEntry) {
-    // TO DO: implement this function
 	if (this->full()) {
 		//must split
 		auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
