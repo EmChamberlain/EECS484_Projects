@@ -102,20 +102,30 @@ const DataEntry& InnerNode::operator[](const Key& key) const {
 }
 
 vector<DataEntry> InnerNode::rangeFind(const Key& begin, const Key& end) const {
-    // TO DO: implement this function
+    // this function might double count, in some circumstances
 	assert(end >= begin);
 	vector<DataEntry> result;
+
+	// NOTE: void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src);
+	
 	for (unsigned i = 0; i < keys.size(); ++i) {
-		if (begin < keys[i])
-			moveInsert(children[i]->rangeFind(begin, end), result);
-		if (begin <= keys[i] && keys[i] <= end)
-			moveInsert(children[i + 1]->rangeFind(begin, end), result);
+		if (begin < keys[i]) {
+			backInsert(result, children[i]->rangeFind(begin, end));
+		}
+		if (begin <= keys[i] && keys[i] <= end && i == keys.size() - 1) {
+			backInsert(result, children[i + 1]->rangeFind(begin, end));
+		}
 	}
     return result;
 }
 
 void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
     // TO DO: implement this function
+	/*  Not entirely sure what is meant by 'rightDescendant'...
+	 *  if this were a BST, I would assume this means the right child,
+	 *	but that is not the case for a B+ tree. Perhaps rightDescendant
+	 *  is the right-most child?
+	 */
 	assert(rightDescendant != nullptr);
 	for (unsigned i = 0; i < children.size(); ++i) {
 		if (this->contains(rightDescendant)) {
@@ -146,10 +156,6 @@ void InnerNode::insertEntry(const DataEntry& newEntry) {
 	Key comp = newEntry;
 	auto lb = std::lower_bound(keys.begin(), keys.end(), comp);
 	int index = std::distance(keys.begin(), lb);
-	/*if (index >= children.size()) {
-		children.resize(index + 1);
-		//LeafNode* newLeaf = new LeafNode{};
-	}*/
 	children[index]->insertEntry(newEntry);
 }
 
@@ -222,11 +228,10 @@ bool InnerNode::full() const {
 	return (int)keys.size() == kInnerOrder * 2;
 }
 
-void moveInsert(vector<DataEntry>& vec1, vector<DataEntry>& vec2) {
-	if (vec2.empty())
-		vec2 = vec1;
-	else {
-		vec2 = merge(vec1, vec2);
+void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
+	dst.reserve(dst.size() + src.size());
+	for (unsigned i = 0; i < src.size(); ++i) {
+		dst.emplace_back(src[i]);
 	}
 }
 
@@ -247,11 +252,9 @@ vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
 			result.push_back(*r++);
 	}
 
-	// copy rest of left array
 	while (l != le)
 		result.push_back(*l++);
 
-	// copy rest of right array
 	while (r != re)
 		result.push_back(*r++);
 

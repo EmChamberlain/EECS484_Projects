@@ -32,6 +32,7 @@ size_t BTree::getSize() const {
 
 void BTree::insertEntry(const DataEntry& newEntry) {
     // TO DO: implement this function
+	if (root->contains(newEntry)) return;
 	TreeNode* temp = root;
 	root = root->insertIntoRoot(newEntry);
 	if (temp != root) ++height;

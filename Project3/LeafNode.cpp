@@ -95,6 +95,7 @@ TreeNode* LeafNode::deleteFromRoot(const DataEntry& entryToRemove) {
 }
 
 void LeafNode::insertEntry(const DataEntry& newEntry) {
+	assert(!contains(newEntry));
 	if (this->full()) {
 		//must split
 		auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
@@ -131,6 +132,7 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 	if (entries.size() == kLeafOrder) {
 		//need to merge
 		goto skipForNow; //will implement merging later
+
 	}
 	else {
 	skipForNow:
