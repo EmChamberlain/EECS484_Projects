@@ -1,0 +1,43 @@
+insert 10
+insert 20
+insert 30
+insert 40
+insert 50
+insert 15
+insert 11
+insert 9
+insert 8
+insert 6
+insert 7
+insert 2
+insert 4
+insert 5
+insert 3
+insert 110
+insert 60
+insert 61
+insert 62
+insert 89
+insert 54
+insert 32
+insert 21
+insert 111
+insert 156
+insert 253
+insert 233
+insert 558
+insert 37
+insert 90
+insert 77
+insert 88
+insert 99
+insert 95
+insert 11
+insert 82
+insert 13
+insert 89
+insert 900
+insert 1
+print
+find 11 200
+quit
