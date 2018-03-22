@@ -133,8 +133,8 @@ class InnerNode final : public TreeNode {
 
 };
 
-void moveInsert(std::vector<DataEntry>& src, std::vector<DataEntry>& dst);
+void moveInsert(std::vector<DataEntry>& vec1, std::vector<DataEntry>& vec2);
 
-std::vector<DataEntry> merge(std::vector<DataEntry> &vec1, std::vector<DataEntry> &vec2);
+std::vector<DataEntry> merge(std::vector<DataEntry> &left, std::vector<DataEntry> &right);
 
 #endif

@@ -106,9 +106,10 @@ vector<DataEntry> InnerNode::rangeFind(const Key& begin, const Key& end) const {
 	assert(end >= begin);
 	vector<DataEntry> result;
 	for (unsigned i = 0; i < keys.size(); ++i) {
-		if (keys[i] >= begin && keys[i] <= end) {
+		if (begin < keys[i])
 			moveInsert(children[i]->rangeFind(begin, end), result);
-		}
+		if (begin <= keys[i] && keys[i] <= end)
+			moveInsert(children[i + 1]->rangeFind(begin, end), result);
 	}
     return result;
 }
@@ -192,24 +193,6 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		keys.erase(keys.begin() + threshold, keys.end());
 		children.erase(children.begin() + threshold + 1, children.end());
 
-		/*if (index < threshold) { //this line is bad
-			//add child to left-most node
-			auto lb = std::lower_bound(keys.begin(), keys.end(), key);
-			index = std::distance(keys.begin(), lb);
-			if (*newChild >= key)
-				children.insert(children.begin() + index + 1, newChild);
-			else
-				children.insert(children.begin() + index, newChild);
-		}
-		else {
-			//add child to right-most node
-			auto lb = std::lower_bound(newKeys.begin(), newKeys.end(), key);
-			index = std::distance(newKeys.begin(), lb);
-			if (*newChild >= key)
-				newChildren.insert(newChildren.begin() + index + 1, newChild);
-			else
-				newChildren.insert(newChildren.begin() + index, newChild);
-		}*/
 		if (getParent()) {
 			//node has parent
 			InnerNode* newSibling = new InnerNode(newChildren, newKeys, getParent());
@@ -242,26 +225,38 @@ bool InnerNode::full() const {
 	return (int)keys.size() == kInnerOrder * 2;
 }
 
-void moveInsert(vector<DataEntry>& src, vector<DataEntry>& dst) {
-	if (dst.empty())
-		dst = move(src);
+void moveInsert(vector<DataEntry>& vec1, vector<DataEntry>& vec2) {
+	if (vec2.empty())
+		vec2 = vec1;
 	else {
-		dst.reserve(dst.size() + src.size());
-		dst = merge(dst, src);
+		vec2 = merge(vec1, vec2);
 	}
 }
 
-vector<DataEntry> merge(vector<DataEntry> &vec1, vector<DataEntry> &vec2) {
-	vector<DataEntry> result;
-	result.reserve(vec1.size() + vec2.size());
-	int lim = std::max((int)vec1.size(), (int)vec2.size());
-	for (int i = 0; i < lim; ++i) {
-		if (vec1[i] < vec2[i])
-			result.emplace_back(std::move(vec1[i]));
+vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
+	auto l = left.begin();
+	auto r = right.begin();
+
+	auto le = left.end();
+	auto re = right.end();
+
+	std::vector<DataEntry> result;
+	result.reserve(left.size() + right.size());
+
+	while (l != le && r != re) {
+		if (*l < *r)
+			result.push_back(*l++);
 		else
-			result.emplace_back(std::move(vec2[i]));
+			result.push_back(*r++);
 	}
-	vec1.clear();
-	vec2.clear();
+
+	// copy rest of left array
+	while (l != le)
+		result.push_back(*l++);
+
+	// copy rest of right array
+	while (r != re)
+		result.push_back(*r++);
+
 	return result;
 }

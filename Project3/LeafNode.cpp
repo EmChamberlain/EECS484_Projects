@@ -76,8 +76,8 @@ vector<DataEntry> LeafNode::rangeFind(const Key& begin, const Key& end) const {
 	vector<DataEntry> result;
 	result.reserve(entries.size());
 	for (unsigned i = 0; i < entries.size(); ++i) {
-		if (Key(entries[i]) >= begin) {
-			if (Key(entries[i]) <= end)
+		if (entries[i] >= begin) {
+			if (entries[i] <= end)
 				result.push_back(entries[i]);
 			else break;
 		}
