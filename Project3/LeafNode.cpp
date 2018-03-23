@@ -19,7 +19,11 @@ using std::string;
 
 // constructor
 LeafNode::LeafNode(InnerNode* parent)
-    : TreeNode{ parent }, entries{} {}
+    : TreeNode{ parent }, entries{}
+{
+	leftNeighbor = nullptr;
+	rightNeighbor = nullptr;
+}
 
 // print keys of data entries surrounded by curly braces, ending
 // newline
@@ -84,6 +88,8 @@ vector<DataEntry> LeafNode::rangeFind(const Key& begin, const Key& end) const {
     return result;
 }
 
+
+
 // use generic delete; height can't decrease
 TreeNode* LeafNode::deleteFromRoot(const DataEntry& entryToRemove) {
     assert(contains(entryToRemove));
@@ -100,10 +106,18 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		//must split
 		auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
 		int index = std::distance(entries.begin(), lb);
+
 		
 		int threshold = kLeafOrder;
 		
 		LeafNode * newSibling = new LeafNode{};
+
+		newSibling->leftNeighbor = this;
+		newSibling->rightNeighbor = this->rightNeighbor;
+		if(this->rightNeighbor)
+			this->rightNeighbor->leftNeighbor = newSibling;
+		this->rightNeighbor = newSibling;
+
 		entries.insert(lb, newEntry);
 		DataEntry temp = entries[threshold];
 
@@ -111,6 +125,8 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 			newSibling->insertEntry(entries[threshold + i]);
 		}
 		entries.erase(entries.begin() + threshold, entries.end());
+		
+		
 
 		if (this->getParent()) {
 			InnerNode* parent = this->getParent();
@@ -118,6 +134,7 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		}
 		else {
 			InnerNode* newRoot = new InnerNode(this, temp, newSibling);
+			
 		}
 	}
 	else {
@@ -126,12 +143,12 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		entries.insert(lb, newEntry);
 	}
 }
-bool redistribute(vector<DataEntry> &need, vector<DataEntry> &has) {
+bool redistribute(vector<DataEntry> &need, vector<DataEntry> &has, DataEntry deleted) {
 	
 
 	if (has.size() > kLeafOrder)
 	{
-		if(*need.begin() > *has.begin())
+		if(deleted > *has.begin())
 		{
 			need.insert(need.begin(), *(has.end() - 1));
 			has.erase(has.end() - 1);
@@ -177,17 +194,19 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
     // TO DO: implement this function
 
 	auto lb = std::lower_bound(entries.begin(), entries.end(), entryToRemove);
+	DataEntry deleted = *lb;
 	entries.erase(lb);
 
 	if (entries.size() < kLeafOrder) {
 		//need to redistribute or merge
-		if (rightNeighbor && redistribute(entries, rightNeighbor->entries))
+		
+		if (rightNeighbor && redistribute(entries, rightNeighbor->entries, deleted))
 		{
 			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
 			return;
 		}
 			
-		if (leftNeighbor && redistribute(entries, leftNeighbor->entries))
+		if (leftNeighbor && redistribute(entries, leftNeighbor->entries, deleted))
 		{
 			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
 			return;
@@ -196,13 +215,15 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 		{
 			vector<DataEntry> merged = merge(entries, rightNeighbor->entries);
 			entries = merged;
-			getParent()->deleteChild(rightNeighbor);
+			rightNeighbor->getParent()->deleteChild(rightNeighbor);
+			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
 		}
 		else
 		{
 			vector<DataEntry> merged = merge(entries, leftNeighbor->entries);
 			leftNeighbor->entries = merged;
-			getParent()->deleteChild(this);
+			leftNeighbor ->getParent()->deleteChild(this);
+			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
 		}
 		
 
@@ -214,4 +235,12 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 
 bool LeafNode::full() const {
 	return (int)entries.size() == kLeafOrder * 2;
+}
+
+void LeafNode::updateNeighborsDeletion()
+{
+	if (leftNeighbor)
+		leftNeighbor->rightNeighbor = rightNeighbor;
+	if (rightNeighbor)
+		rightNeighbor->leftNeighbor = leftNeighbor;
 }

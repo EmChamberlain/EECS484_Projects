@@ -81,6 +81,16 @@ class LeafNode final : public TreeNode {
 		//EFFECTS: returns if the node is full
 		bool full() const;
 
+		// REQUIRES: 
+		// MODIFIES: <leftNeighbor> and <rightNeighbor>
+		// EFFECTS:  unlinks <this> from the linked list
+		void updateNeighborsDeletion();
+
+		// REQUIRES: 
+		// MODIFIES: <leftNeighbor> and <rightNeighbor>
+		// EFFECTS:  unlinks <this> from the linked list
+		void updateNeighborsInsertion();
+
     private:
         LeafNode* leftNeighbor;
         LeafNode* rightNeighbor;

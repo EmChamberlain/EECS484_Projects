@@ -1,4 +1,4 @@
 ﻿  InnerNode.cpp
-Project3\InnerNode.cpp(312): warning C4018: '<': signed/unsigned mismatch
-c:\users\matt\source\repos\eecs484_projects\project3\innernode.cpp(102): warning C4715: 'InnerNode::operator[]': not all control paths return a value
+Project3\InnerNode.cpp(329): warning C4018: '<': signed/unsigned mismatch
+c:\users\matt\source\repos\eecs484_projects\project3\innernode.cpp(103): warning C4715: 'InnerNode::operator[]': not all control paths return a value
   EECS484_Projects.vcxproj -> C:\Users\Matt\Source\Repos\EECS484_Projects\Debug\EECS484_Projects.exe

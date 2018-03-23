@@ -9,6 +9,7 @@
 #include <vector>										// forvector
 ///////////////////////////////////////////////////////////////
 #include <iterator>/*Added by me, not sure if allowed yet*/////
+#include "LeafNode.h"
 ////////////////////*Included to support move semantic insert*/
 ///////////////////////////////////////////////////////////////
 
@@ -119,6 +120,7 @@ vector<DataEntry> InnerNode::rangeFind(const Key& begin, const Key& end) const {
     return result;
 }
 
+
 void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
     // TO DO: implement this function
 	/*  Not entirely sure what is meant by 'rightDescendant'...
@@ -128,7 +130,7 @@ void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
 	 */
 	assert(rightDescendant != nullptr);
 	for (unsigned i = 1; i < children.size(); ++i) {
-		if (children[i] == rightDescendant) {
+		if (children[i]->contains(rightDescendant)) {
 			keys[i-1] = newKey;
 			return;
 		}
@@ -156,6 +158,8 @@ void InnerNode::insertEntry(const DataEntry& newEntry) {
 	Key comp = newEntry;
 	auto lb = std::lower_bound(keys.begin(), keys.end(), comp);
 	int index = std::distance(keys.begin(), lb);
+	if (lb != keys.end() && *lb == comp)
+		index++;
 	children[index]->insertEntry(newEntry);
 }
 
@@ -174,6 +178,8 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		//must split
 		auto lb = std::lower_bound(keys.begin(), keys.end(), key);
 		int index = std::distance(keys.begin(), lb);
+		if (lb != keys.end() && *lb == key)
+			index++;
 
 		//threshold marks the lower bound of the halfway point
 		int threshold = kInnerOrder;
@@ -216,16 +222,19 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		//children.reserve(kInnerOrder * 2 + 1);
 		auto lb = std::lower_bound(keys.begin(), keys.end(), key);
 		int index = std::distance(keys.begin(), lb) + 1;
+		if (lb != keys.end() && *lb == key)
+			index++;
 		keys.insert(lb, key);
 		children.insert(children.begin() + index, newChild);
+		
 	}
 }
-bool redistribute(vector<Key> &need, vector<Key> &has) {
+bool redistribute(vector<Key> &need, vector<Key> &has, Key deleted) {
 
 	
-	if (has.size() > kLeafOrder)
+	if (has.size() > kInnerOrder)
 	{
-		if (*need.begin() > *has.begin())
+		if (deleted > *has.begin())
 		{
 			need.insert(need.begin(), *(has.end() - 1));
 			has.erase(has.end() - 1);
@@ -294,17 +303,25 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			break;
 		}
 	}
+	LeafNode* leaf = dynamic_cast<LeafNode*>(childToRemove);
+	if (leaf)
+		leaf->updateNeighborsDeletion();
 	
+	Key deleted;
 	children.erase(children.begin() + childIndex);
 	if (childIndex == 0)
 	{
-		keys.erase(keys.begin());
+		deleted = *keys.begin();
+		keys.erase(keys.begin());	
 	}
 	else
 	{
+		deleted = *(keys.begin() + (childIndex - 1));
 		keys.erase(keys.begin() + (childIndex - 1));
 	}
-	if (keys.size() < kLeafOrder) {
+	
+
+	if (keys.size() < kInnerOrder) {
 		//need to redistribute or merge
 		InnerNode *rightNeighbor = nullptr;
 		InnerNode *leftNeighbor = nullptr;
@@ -321,7 +338,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			}
 		}
 	
-		if (rightNeighbor && redistribute(keys, rightNeighbor->keys))
+		if (rightNeighbor && redistribute(keys, rightNeighbor->keys, deleted))
 		{
 			auto beg = rightNeighbor->children.begin();
 			children.insert(children.end(), *beg);
@@ -330,11 +347,11 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			return;
 		}
 		
-		if (leftNeighbor && redistribute(keys, leftNeighbor->keys))
+		if (leftNeighbor && redistribute(keys, leftNeighbor->keys, deleted))
 		{
-			auto beg = children.begin();
-			leftNeighbor->children.insert(leftNeighbor->children.end(), *beg);
-			children.erase(beg);
+			auto end = leftNeighbor->children.end() - 1;
+			children.insert(children.begin(), *end);
+			leftNeighbor->children.erase(end);
 			getParent()->updateKey(this, this->keys[0]);
 			return;
 		}
@@ -343,6 +360,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			vector<Key> mergedKeys = merge(keys, rightNeighbor->keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(children, rightNeighbor->children);
 			keys = mergedKeys;
+			keys.insert(keys.begin(), *(getParent()->keys.begin()));
 			children = mergedChildren;
 			getParent()->deleteChild(rightNeighbor);
 		}
@@ -351,6 +369,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			vector<Key> mergedKeys = merge(leftNeighbor->keys, keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(leftNeighbor->children, children);
 			leftNeighbor->keys = mergedKeys;
+			leftNeighbor->keys.insert(leftNeighbor->keys.end(), *(getParent()->keys.end()-1));
 			leftNeighbor->children = mergedChildren;
 			getParent()->deleteChild(this);
 		}
@@ -371,4 +390,5 @@ void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
 		dst.emplace_back(src[i]);
 	}
 }
+
 
