@@ -253,7 +253,7 @@ vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 bool redistribute(vector<Key> &left, vector<Key> &right) {
 
 
-	if ((int)(left.size() + right.size()) >= kInnerOrder * 2)
+	if ((left.size() + right.size()) >= kInnerOrder * 2)
 	{
 
 		auto merged = merge(left, right);
@@ -320,17 +320,17 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 	if (leaf)
 		leaf->updateNeighborsDeletion();
 	
-	Key deleted;
+	//Key deleted;
 	children.erase(children.begin() + childIndex);
 	
 	if (childIndex == 0)
 	{
-		deleted = *keys.begin();
+		//deleted = *keys.begin();
 		keys.erase(keys.begin());	
 	}
 	else
 	{
-		deleted = *(keys.begin() + (childIndex - 1));
+		//deleted = *(keys.begin() + (childIndex - 1));
 		keys.erase(keys.begin() + (childIndex - 1));
 	}
 

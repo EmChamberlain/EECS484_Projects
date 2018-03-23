@@ -186,7 +186,7 @@ vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
 bool redistribute(vector<DataEntry> &left, vector<DataEntry> &right) {
 
 
-	if ((int)(left.size() + right.size()) >= kLeafOrder * 2)
+	if ((left.size() + right.size()) >= kLeafOrder * 2)
 	{
 
 		auto merged = merge(left, right);
