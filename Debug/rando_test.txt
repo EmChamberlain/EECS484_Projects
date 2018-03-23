@@ -1,0 +1,41 @@
+insert 59
+print
+insert 116
+print
+insert 91
+print
+insert 115
+print
+insert 52
+print
+insert 133
+print
+insert 112
+print
+insert 88
+print
+insert 17
+print
+insert 75
+print
+insert 174
+print
+insert 134
+print
+insert 158
+print
+insert 143
+print
+insert 67
+print
+delete 115
+print
+delete 52
+print
+delete 174
+print
+delete 158
+print
+delete 59
+print
+quit

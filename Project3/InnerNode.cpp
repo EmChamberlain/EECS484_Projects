@@ -229,28 +229,7 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		
 	}
 }
-bool redistribute(vector<Key> &need, vector<Key> &has, Key deleted, Key parentKey, Key &erased) {
 
-	
-	if (has.size() > kInnerOrder)
-	{
-		if (deleted > *has.begin())
-		{
-			need.insert(need.begin(), parentKey);
-			erased = *(has.end() - 1);
-			has.erase(has.end() - 1);
-		}
-		else
-		{
-			need.insert(need.end(), parentKey);
-			erased = *(has.begin());
-			has.erase(has.begin());
-		}
-
-		return true;
-	}
-	return false;
-}
 
 vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 	auto l = left.begin();
@@ -262,13 +241,7 @@ vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 	std::vector<Key> result;
 	result.reserve(left.size() + right.size());
 
-	while (l != le && r != re) {
-		if (*l < *r)
-			result.push_back(*l++);
-		else
-			result.push_back(*r++);
-	}
-
+	
 	while (l != le)
 		result.push_back(*l++);
 
@@ -276,6 +249,26 @@ vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 		result.push_back(*r++);
 
 	return result;
+}
+bool redistribute(vector<Key> &left, vector<Key> &right) {
+
+
+	if ((int)(left.size() + right.size()) >= kInnerOrder * 2)
+	{
+
+		auto merged = merge(left, right);
+		unsigned int leftInd = merged.size() / 2;
+		left.clear();
+		for (unsigned int i = 0; i < leftInd; i++)
+			left.push_back(merged[i]);
+		right.clear();
+		for (unsigned int i = leftInd; i < merged.size(); i++)
+			right.push_back(merged[i]);
+
+
+		return true;
+	}
+	return false;
 }
 vector<TreeNode*> mergeChildren(vector<TreeNode*> &left, vector<TreeNode*> &right) {
 	auto l = left.begin();
@@ -295,6 +288,18 @@ vector<TreeNode*> mergeChildren(vector<TreeNode*> &left, vector<TreeNode*> &righ
 		result.push_back(*r++);
 
 	return result;
+}
+bool redistribute_children(vector<TreeNode*> &left, vector<TreeNode*> &right, unsigned int numLeft)
+{
+	auto merged = mergeChildren(left, right);
+	left.clear();
+	for (unsigned int i = 0; i < numLeft + 1; i++)
+		left.push_back(merged[i]);
+	right.clear();
+	for (unsigned int i = numLeft + 1; i < merged.size(); i++)
+		right.push_back(merged[i]);
+
+	return true;
 }
 
 
@@ -328,6 +333,8 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		deleted = *(keys.begin() + (childIndex - 1));
 		keys.erase(keys.begin() + (childIndex - 1));
 	}
+
+	
 	
 
 
@@ -360,31 +367,62 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 				}
 			}
 		}
-		Key erased = 0;
-		if (rightNeighbor && redistribute(keys, rightNeighbor->keys, deleted, parentKeyRight, erased))
+
+		if (rightNeighbor && redistribute(keys, rightNeighbor->keys))
 		{
-			auto beg = rightNeighbor->children.begin();
-			(*beg)->updateParent(this);
-			children.insert(children.end(), *beg);
-			rightNeighbor->children.erase(beg);
-			getParent()->updateKey(rightNeighbor, erased);
+			auto lb = std::lower_bound(keys.begin(), keys.end(), parentKeyRight);
+			keys.insert(lb, parentKeyRight);
+			Key minkey = *(keys.end() - 1);
+			keys.erase(keys.end() - 1);
+
+			redistribute_children(children, rightNeighbor->children, keys.size());
+			for (auto child : rightNeighbor->children)
+			{
+				child->updateParent(rightNeighbor);
+			}
+			for (auto child : children)
+			{
+				child->updateParent(this);
+			}
+			//auto beg = rightNeighbor->children.begin();
+			//(*beg)->updateParent(this);
+			//children.insert(children.end(), *beg);
+			//rightNeighbor->children.erase(beg);
+			getParent()->updateKey(rightNeighbor, minkey);
 			
 			return;
 		}
 		
-		if (leftNeighbor && redistribute(keys, leftNeighbor->keys, deleted, parentKeyLeft, erased))
-		{
-			auto end = leftNeighbor->children.end() - 1;
-			(*end)->updateParent(this);
-			children.insert(children.begin(), *end);
-			leftNeighbor->children.erase(end);
-			getParent()->updateKey(this, erased);
+		if (leftNeighbor && redistribute(leftNeighbor->keys, keys))
+		{	
+			auto lb = std::lower_bound(keys.begin(), keys.end(), parentKeyLeft);
+			keys.insert(lb, parentKeyLeft);
+			Key minkey = keys[0];
+			keys.erase(keys.begin());
+
+			redistribute_children(leftNeighbor->children, children, leftNeighbor->keys.size());
+			
+			for (auto child : leftNeighbor->children)
+			{
+				child->updateParent(leftNeighbor);
+			}
+			for (auto child : children)
+			{
+				child->updateParent(this);
+			}
+			//auto end = leftNeighbor->children.end() - 1;
+			//(*end)->updateParent(this);
+			//children.insert(children.begin(), *end);
+			//leftNeighbor->children.erase(end);
+			
+			getParent()->updateKey(this, minkey);
 			
 			return;
 		}
 		if (rightNeighbor)
 		{
-			keys.push_back(parentKeyRight);
+			//keys.push_back(parentKeyRight);
+			keys.push_back(rightNeighbor->minKey());
 			vector<Key> mergedKeys = merge(keys, rightNeighbor->keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(children, rightNeighbor->children);
 			for (TreeNode* child : mergedChildren)
@@ -398,7 +436,9 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		}
 		else if(leftNeighbor)
 		{
-			leftNeighbor->keys.push_back(parentKeyLeft);
+			//leftNeighbor->keys.push_back(parentKeyLeft);
+			leftNeighbor->keys.push_back(minKey());
+			
 			vector<Key> mergedKeys = merge(leftNeighbor->keys, keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(leftNeighbor->children, children);
 			for (TreeNode* child : mergedChildren)
@@ -410,10 +450,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			leftNeighbor->children = mergedChildren;
 			getParent()->deleteChild(this);
 		}
-		else
-		{
-			int temp = 11;
-		}
+		
 		
 
 	}

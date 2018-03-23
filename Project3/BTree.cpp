@@ -69,8 +69,3 @@ void BTree::print(ostream& os) const {
 
 
 
-
-void updateNeighbors()
-{
-	
-}
