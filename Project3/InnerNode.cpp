@@ -19,19 +19,19 @@ using std::vector; using std::string;
 using std::ostream;
 /////////////////////////////////////////////////////////
 using std::back_inserter;/*included in iterator library*/
-/////////////////////////////////////////////////////////
+						 /////////////////////////////////////////////////////////
 
 
 
-// value constructor
-InnerNode::InnerNode(TreeNode* child1, const Key& key, TreeNode* child2, InnerNode* parent) 
-    : TreeNode{ parent }, keys{ key }, children{ child1, child2 } {
+						 // value constructor
+InnerNode::InnerNode(TreeNode* child1, const Key& key, TreeNode* child2, InnerNode* parent)
+	: TreeNode{ parent }, keys{ key }, children{ child1, child2 } {
 
-    assert(child1 && child2);
-    assert(*child1 < key && *child2 >= key);
+	assert(child1 && child2);
+	assert(*child1 < key && *child2 >= key);
 
-    child1->updateParent(this);
-    child2->updateParent(this);
+	child1->updateParent(this);
+	child2->updateParent(this);
 }
 
 InnerNode::InnerNode(vector<TreeNode*> &_children, vector<Key> &_keys, InnerNode* parent)
@@ -43,95 +43,106 @@ InnerNode::InnerNode(vector<TreeNode*> &_children, vector<Key> &_keys, InnerNode
 
 // deallocate all children
 InnerNode::~InnerNode() {
-    for (auto child : children) {
-        delete child;
-    }
+	for (auto child : children) {
+		delete child;
+	}
 }
 
 // print keys, then each node on its own line
 void InnerNode::print(ostream& os, int indent) const {
-    assert(indent >= 0);
+	assert(indent >= 0);
 
-    os << kPrintPrefix << string(indent, ' ') << "[ ";
-    for (const auto& key : keys) {
-        if (key != keys[0]) {
-            os << " | ";
-        }
-        os << key;
-    }
-    os << " ]\n";
+	os << kPrintPrefix << string(indent, ' ') << "[ ";
+	for (const auto& key : keys) {
+		if (key != keys[0]) {
+			os << " | ";
+		}
+		os << key;
+	}
+	os << " ]\n";
 
-    for (const auto child : children) {
-        child->print(os, indent + kIndentIncr);
-    }
+	for (const auto child : children) {
+		child->print(os, indent + kIndentIncr);
+	}
 
-    assert(satisfiesInvariant());
+	assert(satisfiesInvariant());
 }
 
 // ask first child, which must exist
 Key InnerNode::minKey() const {
-    return children.front()->minKey();
+	return children.front()->minKey();
 }
 
 // ask last child, which must exist
 Key InnerNode::maxKey() const {
-    return children.back()->maxKey();
+	return children.back()->maxKey();
 }
 
 // ask the child where the data entry with that key would be
 bool InnerNode::contains(const Key& key) const {
-    return (
-        any_of(children.cbegin(), children.cend(), [key](auto n)->bool { return n->contains(key); }));
+	return (
+		any_of(children.cbegin(), children.cend(), [key](auto n)->bool { return n->contains(key); }));
 }
 
 // ask children if they contain
 bool InnerNode::contains(const TreeNode* node) const {
-    return ((this == node) ||
-        any_of(children.cbegin(), children.cend(), [node](auto n)->bool { return n->contains(node); }));
+	return ((this == node) ||
+		any_of(children.cbegin(), children.cend(), [node](auto n)->bool { return n->contains(node); }));
 }
 
 // ask the child where the data entry with that key is
 const DataEntry& InnerNode::operator[](const Key& key) const {
-    assert(contains(key));
+	assert(contains(key));
 
-    for (const auto child : children) {
-        if (child->contains(key)) {
-            return child->operator[](key);
-        }
-    }
-    assert(false);
+	for (const auto child : children) {
+		if (child->contains(key)) {
+			return child->operator[](key);
+		}
+	}
+	assert(false);
 }
 
 vector<DataEntry> InnerNode::rangeFind(const Key& begin, const Key& end) const {
-    // this function might double count, in some circumstances
+	// this function might double count, in some circumstances
 	assert(end >= begin);
 	vector<DataEntry> result;
 
 	// NOTE: void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src);
-	
-	for (unsigned i = 0; i < keys.size(); ++i) {
+
+	/*for (unsigned i = 0; i < keys.size(); ++i) {
 		if (begin < keys[i]) {
 			backInsert(result, children[i]->rangeFind(begin, end));
 		}
 		if (begin <= keys[i] && keys[i] <= end && i == keys.size() - 1) {
 			backInsert(result, children[i + 1]->rangeFind(begin, end));
 		}
+	}*/
+
+	for (unsigned i = 0; i < keys.size(); ++i) {
+		if (begin < keys[i]) {
+			backInsert(result, children[i]->rangeFind(begin, end));
+			break;
+		}
+		else if (begin >= keys[i] && keys[i] <= end) {
+			backInsert(result, children[i + 1]->rangeFind(begin, end));
+			break;
+		}
 	}
-    return result;
+	return result;
 }
 
 
 void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
-    // TO DO: implement this function
+	// TO DO: implement this function
 	/*  Not entirely sure what is meant by 'rightDescendant'...
-	 *  if this were a BST, I would assume this means the right child,
-	 *	but that is not the case for a B+ tree. Perhaps rightDescendant
-	 *  is the right-most child?
-	 */
+	*  if this were a BST, I would assume this means the right child,
+	*	but that is not the case for a B+ tree. Perhaps rightDescendant
+	*  is the right-most child?
+	*/
 	assert(rightDescendant != nullptr);
 	for (unsigned i = 1; i < children.size(); ++i) {
 		if (children[i]->contains(rightDescendant)) {
-			keys[i-1] = newKey;
+			keys[i - 1] = newKey;
 			return;
 		}
 	}
@@ -140,18 +151,18 @@ void InnerNode::updateKey(const TreeNode* rightDescendant, const Key& newKey) {
 // use generic delete, then look at number of children to determine
 // if height decreased
 TreeNode* InnerNode::deleteFromRoot(const DataEntry& entryToRemove) {
-    assert(!getParent());
-    assert(contains(entryToRemove));
+	assert(!getParent());
+	assert(contains(entryToRemove));
 
-    deleteEntry(entryToRemove);
-    if (children.size() == 1) {                 // one child means height has shrunk
-        auto newRoot = children.front();
-        children.clear();                       // clear children so not deallocated later
-        assert(satisfiesInvariant());
-        return newRoot;
-    }
-    assert(satisfiesInvariant());
-    return this;
+	deleteEntry(entryToRemove);
+	if (children.size() == 1) {                 // one child means height has shrunk
+		auto newRoot = children.front();
+		children.clear();                       // clear children so not deallocated later
+		assert(satisfiesInvariant());
+		return newRoot;
+	}
+	assert(satisfiesInvariant());
+	return this;
 }
 
 void InnerNode::insertEntry(const DataEntry& newEntry) {
@@ -226,7 +237,7 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 			index++;
 		keys.insert(lb, key);
 		children.insert(children.begin() + index, newChild);
-		
+
 	}
 }
 
@@ -241,7 +252,7 @@ vector<Key> merge(vector<Key> &left, vector<Key> &right) {
 	std::vector<Key> result;
 	result.reserve(left.size() + right.size());
 
-	
+
 	while (l != le)
 		result.push_back(*l++);
 
@@ -304,7 +315,7 @@ bool redistribute_children(vector<TreeNode*> &left, vector<TreeNode*> &right, un
 
 
 void InnerNode::deleteChild(TreeNode* childToRemove) {
-    // TO DO: implement this function
+	// TO DO: implement this function
 	int childIndex = -1;
 	for (unsigned i = 0; i < children.size(); ++i) {
 		if (children[i] == childToRemove) {
@@ -319,14 +330,14 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 	LeafNode* leaf = dynamic_cast<LeafNode*>(childToRemove);
 	if (leaf)
 		leaf->updateNeighborsDeletion();
-	
+
 	//Key deleted;
 	children.erase(children.begin() + childIndex);
-	
+
 	if (childIndex == 0)
 	{
 		//deleted = *keys.begin();
-		keys.erase(keys.begin());	
+		keys.erase(keys.begin());
 	}
 	else
 	{
@@ -334,8 +345,8 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		keys.erase(keys.begin() + (childIndex - 1));
 	}
 
-	
-	
+
+
 
 
 	if (keys.size() < kInnerOrder) {
@@ -344,7 +355,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		InnerNode *leftNeighbor = nullptr;
 		Key parentKeyLeft = 0;
 		Key parentKeyRight = 0;
-		if(getParent())
+		if (getParent())
 		{
 			auto parentChildren = getParent()->children;
 			for (unsigned int i = 0; i < parentChildren.size(); i++)
@@ -389,19 +400,19 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			//children.insert(children.end(), *beg);
 			//rightNeighbor->children.erase(beg);
 			getParent()->updateKey(rightNeighbor, minkey);
-			
+
 			return;
 		}
-		
+
 		if (leftNeighbor && redistribute(leftNeighbor->keys, keys))
-		{	
+		{
 			auto lb = std::lower_bound(keys.begin(), keys.end(), parentKeyLeft);
 			keys.insert(lb, parentKeyLeft);
 			Key minkey = keys[0];
 			keys.erase(keys.begin());
 
 			redistribute_children(leftNeighbor->children, children, leftNeighbor->keys.size());
-			
+
 			for (auto child : leftNeighbor->children)
 			{
 				child->updateParent(leftNeighbor);
@@ -414,9 +425,9 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			//(*end)->updateParent(this);
 			//children.insert(children.begin(), *end);
 			//leftNeighbor->children.erase(end);
-			
+
 			getParent()->updateKey(this, minkey);
-			
+
 			return;
 		}
 		if (rightNeighbor)
@@ -434,11 +445,11 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			children = mergedChildren;
 			getParent()->deleteChild(rightNeighbor);
 		}
-		else if(leftNeighbor)
+		else if (leftNeighbor)
 		{
 			//leftNeighbor->keys.push_back(parentKeyLeft);
 			leftNeighbor->keys.push_back(minKey());
-			
+
 			vector<Key> mergedKeys = merge(leftNeighbor->keys, keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(leftNeighbor->children, children);
 			for (TreeNode* child : mergedChildren)
@@ -450,11 +461,11 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 			leftNeighbor->children = mergedChildren;
 			getParent()->deleteChild(this);
 		}
-		
-		
+
+
 
 	}
-	
+
 	return;
 }
 
@@ -468,5 +479,3 @@ void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
 		dst.emplace_back(src[i]);
 	}
 }
-
-

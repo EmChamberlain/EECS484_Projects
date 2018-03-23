@@ -19,7 +19,7 @@ using std::string;
 
 // constructor
 LeafNode::LeafNode(InnerNode* parent)
-    : TreeNode{ parent }, entries{}
+	: TreeNode{ parent }, entries{}
 {
 	leftNeighbor = nullptr;
 	rightNeighbor = nullptr;
@@ -28,52 +28,59 @@ LeafNode::LeafNode(InnerNode* parent)
 // print keys of data entries surrounded by curly braces, ending
 // newline
 void LeafNode::print(ostream& os, int indent) const {
-    assert(indent >= 0);
+	assert(indent >= 0);
 
-    os << kPrintPrefix << string(indent, ' ') << "{ ";
-    for (const auto& entry : entries) {
-        if (entry != entries[0]) {
-            os << " | ";
-        }
-        os << entry;
-    }
-    os << " }\n";
+	os << kPrintPrefix << string(indent, ' ') << "{ ";
+	for (const auto& entry : entries) {
+		if (entry != entries[0]) {
+			os << " | ";
+		}
+		os << entry;
+	}
+	os << " }\n";
 
-    assert(satisfiesInvariant());
+	assert(satisfiesInvariant());
 }
 
 // data entries are sorted; minimum is first entry's key
 Key LeafNode::minKey() const {
-    if (entries.empty()) {
-        return numeric_limits<Key>::min();
-    }
-    return entries.front();
+	if (entries.empty()) {
+		return numeric_limits<Key>::min();
+	}
+	return entries.front();
 }
 
 // data entries are sorted; maximum is last entry's key
 Key LeafNode::maxKey() const {
-    if (entries.empty()) {
-        return numeric_limits<Key>::max();
-    }
-    return entries.back();
+	if (entries.empty()) {
+		return numeric_limits<Key>::max();
+	}
+	return entries.back();
 }
 
 // TRUE if key is the key of any entry
 bool LeafNode::contains(const Key& key) const {
-    return (find(entries.cbegin(), entries.cend(), key) != entries.cend());
+	return (find(entries.cbegin(), entries.cend(), key) != entries.cend());
 }
 
 // TRUE if this node is the target
 bool LeafNode::contains(const TreeNode* node) const {
-    return (this == node);
+	return (this == node);
 }
 
 // return the data entry with given key
 const DataEntry& LeafNode::operator[](const Key& key) const {
-    assert(contains(key));
+	assert(contains(key));
 
-    return *find(entries.cbegin(), entries.cend(), key);
+	return *find(entries.cbegin(), entries.cend(), key);
 }
+
+/*void backInsert(vector<DataEntry>& dst, vector<DataEntry>&& src) {
+	dst.reserve(dst.size() + src.size());
+	for (unsigned i = 0; i < src.size(); ++i) {
+		dst.emplace_back(src[i]);
+	}
+}*/
 
 vector<DataEntry> LeafNode::rangeFind(const Key& begin, const Key& end) const {
 	vector<DataEntry> result;
@@ -82,22 +89,25 @@ vector<DataEntry> LeafNode::rangeFind(const Key& begin, const Key& end) const {
 		if (entries[i] >= begin) {
 			if (entries[i] <= end)
 				result.push_back(entries[i]);
-			else break;
+			else return result;
 		}
 	}
-    return result;
+	//if (result.size() == 0) return result;
+	if (rightNeighbor)
+		backInsert(result, rightNeighbor->rangeFind(begin, end));
+	return result;
 }
 
 
 
 // use generic delete; height can't decrease
 TreeNode* LeafNode::deleteFromRoot(const DataEntry& entryToRemove) {
-    assert(contains(entryToRemove));
-    assert(!getParent());
+	assert(contains(entryToRemove));
+	assert(!getParent());
 
-    deleteEntry(entryToRemove);
-    assert(satisfiesInvariant());
-    return this;
+	deleteEntry(entryToRemove);
+	assert(satisfiesInvariant());
+	return this;
 }
 
 void LeafNode::insertEntry(const DataEntry& newEntry) {
@@ -107,34 +117,34 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		//auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
 		//int index = std::distance(entries.begin(), lb);
 
-		
+
 		int threshold = kLeafOrder;
-		
+
 		LeafNode * newSibling = new LeafNode{};
 
 		newSibling->leftNeighbor = this;
 		newSibling->rightNeighbor = this->rightNeighbor;
-		if(this->rightNeighbor)
+		if (this->rightNeighbor)
 			this->rightNeighbor->leftNeighbor = newSibling;
 		this->rightNeighbor = newSibling;
 
-		
-		
+
+
 
 		for (int i = 0; i < (int)entries.size() - threshold; ++i) {
 			newSibling->insertEntry(entries[threshold + i]);
 		}
 		entries.erase(entries.begin() + threshold, entries.end());
-		
+
 		auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
 		auto newlb = std::lower_bound(newSibling->entries.begin(), newSibling->entries.end(), newEntry);
-		if(lb != entries.end())
+		if (lb != entries.end())
 			entries.insert(lb, newEntry);
-		else if(lb == entries.end() && newlb == newSibling->entries.begin())
+		else if (lb == entries.end() && newlb == newSibling->entries.begin())
 			entries.insert(lb, newEntry);
 		else
 			newSibling->entries.insert(newlb, newEntry);
-		
+
 
 		Key minkey = newSibling->minKey();
 		if (this->getParent()) {
@@ -147,7 +157,7 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 			{
 				return;
 			}
-			
+
 		}
 	}
 	else {
@@ -205,7 +215,7 @@ bool redistribute(vector<DataEntry> &left, vector<DataEntry> &right) {
 }
 
 void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
-    // TO DO: implement this function
+	// TO DO: implement this function
 	if (entries.empty())
 		return;
 
@@ -220,13 +230,13 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 
 	if (entries.size() < kLeafOrder) {
 		//need to redistribute or merge
-		
+
 		if (rightNeighbor && redistribute(entries, rightNeighbor->entries))
 		{
 			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, (rightNeighbor->entries[0]));
 			return;
 		}
-			
+
 		if (leftNeighbor && redistribute(leftNeighbor->entries, entries))
 		{
 			getCommonAncestor(leftNeighbor)->updateKey(this, entries[0]);
@@ -242,9 +252,9 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, minkey);
 			rightNeighbor->getParent()->deleteChild(rightNeighbor);
 
-			
-			
-			
+
+
+
 		}
 		else if (leftNeighbor)
 		{
@@ -255,20 +265,19 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 				minkey = rightNeighbor->entries[0];
 			getCommonAncestor(leftNeighbor)->updateKey(this, minkey);
 			leftNeighbor->getParent()->deleteChild(this);
-			
-			
-			
+
+
+
 		}
 		else
 		{
 			return;
 		}
-		
+
 
 	}
-	
-}
 
+}
 
 
 bool LeafNode::full() const {
@@ -282,3 +291,4 @@ void LeafNode::updateNeighborsDeletion()
 	if (rightNeighbor)
 		rightNeighbor->leftNeighbor = leftNeighbor;
 }
+
