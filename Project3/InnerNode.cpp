@@ -296,6 +296,8 @@ vector<TreeNode*> mergeChildren(vector<TreeNode*> &left, vector<TreeNode*> &righ
 
 	return result;
 }
+
+
 void InnerNode::deleteChild(TreeNode* childToRemove) {
     // TO DO: implement this function
 	int childIndex = -1;
@@ -306,7 +308,9 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		}
 	}
 	assert(childIndex >= 0);
-	assert(!keys.empty());
+	//assert(!keys.empty());
+	if (keys.empty())
+		return;
 	LeafNode* leaf = dynamic_cast<LeafNode*>(childToRemove);
 	if (leaf)
 		leaf->updateNeighborsDeletion();
@@ -314,16 +318,16 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 	Key deleted;
 	children.erase(children.begin() + childIndex);
 	
-		if (childIndex == 0)
-		{
-			deleted = *keys.begin();
-			keys.erase(keys.begin());	
-		}
-		else
-		{
-			deleted = *(keys.begin() + (childIndex - 1));
-			keys.erase(keys.begin() + (childIndex - 1));
-		}
+	if (childIndex == 0)
+	{
+		deleted = *keys.begin();
+		keys.erase(keys.begin());	
+	}
+	else
+	{
+		deleted = *(keys.begin() + (childIndex - 1));
+		keys.erase(keys.begin() + (childIndex - 1));
+	}
 	
 
 
@@ -333,30 +337,34 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		InnerNode *leftNeighbor = nullptr;
 		Key parentKeyLeft = 0;
 		Key parentKeyRight = 0;
-		auto parentChildren = getParent()->children;
-		for (int i = 0; i < parentChildren.size(); i++)
+		if(getParent())
 		{
-			if(parentChildren[i] == this)
+			auto parentChildren = getParent()->children;
+			for (unsigned int i = 0; i < parentChildren.size(); i++)
 			{
-				if (i != 0)
+				if (parentChildren[i] == this)
 				{
-					parentKeyLeft = getParent()->keys[i - 1];
-					leftNeighbor = (InnerNode*)parentChildren[i - 1];
+					if (i != 0)
+					{
+						parentKeyLeft = getParent()->keys[i - 1];
+						leftNeighbor = (InnerNode*)parentChildren[i - 1];
+					}
+
+					if (i != parentChildren.size() - 1)
+					{
+						parentKeyRight = getParent()->keys[i];
+						rightNeighbor = (InnerNode*)parentChildren[i + 1];
+					}
+
+					break;
 				}
-					
-				if(i != parentChildren.size() - 1)
-				{
-					parentKeyRight = getParent()->keys[i];
-					rightNeighbor = (InnerNode*)parentChildren[i + 1];
-				}					
-					
-				break;
 			}
 		}
 		Key erased = 0;
 		if (rightNeighbor && redistribute(keys, rightNeighbor->keys, deleted, parentKeyRight, erased))
 		{
 			auto beg = rightNeighbor->children.begin();
+			(*beg)->updateParent(this);
 			children.insert(children.end(), *beg);
 			rightNeighbor->children.erase(beg);
 			getParent()->updateKey(rightNeighbor, erased);
@@ -367,6 +375,7 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		if (leftNeighbor && redistribute(keys, leftNeighbor->keys, deleted, parentKeyLeft, erased))
 		{
 			auto end = leftNeighbor->children.end() - 1;
+			(*end)->updateParent(this);
 			children.insert(children.begin(), *end);
 			leftNeighbor->children.erase(end);
 			getParent()->updateKey(this, erased);
@@ -375,21 +384,35 @@ void InnerNode::deleteChild(TreeNode* childToRemove) {
 		}
 		if (rightNeighbor)
 		{
+			keys.push_back(parentKeyRight);
 			vector<Key> mergedKeys = merge(keys, rightNeighbor->keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(children, rightNeighbor->children);
+			for (TreeNode* child : mergedChildren)
+			{
+				child->updateParent(this);
+			}
 			keys = mergedKeys;
-			keys.insert(keys.begin(), *(getParent()->keys.begin()));
+			//keys.insert(keys.begin(), parentKeyRight);
 			children = mergedChildren;
 			getParent()->deleteChild(rightNeighbor);
 		}
-		else
+		else if(leftNeighbor)
 		{
+			leftNeighbor->keys.push_back(parentKeyLeft);
 			vector<Key> mergedKeys = merge(leftNeighbor->keys, keys);
 			vector<TreeNode*> mergedChildren = mergeChildren(leftNeighbor->children, children);
+			for (TreeNode* child : mergedChildren)
+			{
+				child->updateParent(leftNeighbor);
+			}
 			leftNeighbor->keys = mergedKeys;
-			leftNeighbor->keys.insert(leftNeighbor->keys.end(), *(getParent()->keys.end()-1));
+			//leftNeighbor->keys.insert(leftNeighbor->keys.end(), parentKeyLeft);
 			leftNeighbor->children = mergedChildren;
 			getParent()->deleteChild(this);
+		}
+		else
+		{
+			int temp = 11;
 		}
 		
 

@@ -105,7 +105,7 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 	if (this->full()) {
 		//must split
 		auto lb = std::lower_bound(entries.begin(), entries.end(), newEntry);
-		int index = std::distance(entries.begin(), lb);
+		//int index = std::distance(entries.begin(), lb);
 
 		
 		int threshold = kLeafOrder;
@@ -134,6 +134,10 @@ void LeafNode::insertEntry(const DataEntry& newEntry) {
 		}
 		else {
 			InnerNode* newRoot = new InnerNode(this, temp, newSibling);
+			if (newRoot)
+			{
+				return;
+			}
 			
 		}
 	}
@@ -192,9 +196,15 @@ vector<DataEntry> merge(vector<DataEntry> &left, vector<DataEntry> &right) {
 
 void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
     // TO DO: implement this function
+	if (entries.empty())
+		return;
 
 	auto lb = std::lower_bound(entries.begin(), entries.end(), entryToRemove);
+	if (lb == entries.end())
+		return;
 	DataEntry deleted = *lb;
+	if (deleted != entryToRemove)
+		return;
 	entries.erase(lb);
 
 	if (entries.size() < kLeafOrder) {
@@ -202,30 +212,36 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 		
 		if (rightNeighbor && redistribute(entries, rightNeighbor->entries, deleted))
 		{
-			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
+			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, (rightNeighbor->entries[0]));
 			return;
 		}
 			
 		if (leftNeighbor && redistribute(entries, leftNeighbor->entries, deleted))
 		{
-			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
+			getCommonAncestor(leftNeighbor)->updateKey(this, entries[0]);
 			return;
 		}
 		if (rightNeighbor)
 		{
 			vector<DataEntry> merged = merge(entries, rightNeighbor->entries);
 			entries = merged;
-			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
+			Key minkey = (rightNeighbor->getParent())->minKey();
+			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, minkey);
 			rightNeighbor->getParent()->deleteChild(rightNeighbor);
+			
+		}
+		else if (leftNeighbor)
+		{
+			vector<DataEntry> merged = merge(entries, leftNeighbor->entries);
+			leftNeighbor->entries = merged;
+			Key minkey = minKey();
+			getCommonAncestor(leftNeighbor)->updateKey(this, minkey);
+			leftNeighbor->getParent()->deleteChild(this);
 			
 		}
 		else
 		{
-			vector<DataEntry> merged = merge(entries, leftNeighbor->entries);
-			leftNeighbor->entries = merged;
-			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
-			leftNeighbor ->getParent()->deleteChild(this);
-			
+			return;
 		}
 		
 

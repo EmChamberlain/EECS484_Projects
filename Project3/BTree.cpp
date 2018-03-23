@@ -41,8 +41,18 @@ void BTree::insertEntry(const DataEntry& newEntry) {
 
 void BTree::deleteEntry(const DataEntry& entryToRemove) {
     // TO DO: implement this function
+	TreeNode *prevRoot = root;
+	if (!root->contains(entryToRemove))
+		return;
 	--size;
-	return root->deleteEntry(entryToRemove);
+	root = root->deleteFromRoot(entryToRemove);
+	if (root != prevRoot)
+	{
+		--height;
+		root->updateParent(nullptr);
+	}
+		
+	return;
 }
 
 vector<DataEntry> BTree::rangeFind(const Key& begin, const Key& end) const {
