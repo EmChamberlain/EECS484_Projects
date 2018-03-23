@@ -41,6 +41,7 @@ void BTree::insertEntry(const DataEntry& newEntry) {
 
 void BTree::deleteEntry(const DataEntry& entryToRemove) {
     // TO DO: implement this function
+	--size;
 	return root->deleteEntry(entryToRemove);
 }
 

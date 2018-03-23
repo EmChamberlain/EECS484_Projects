@@ -215,15 +215,17 @@ void LeafNode::deleteEntry(const DataEntry& entryToRemove) {
 		{
 			vector<DataEntry> merged = merge(entries, rightNeighbor->entries);
 			entries = merged;
-			rightNeighbor->getParent()->deleteChild(rightNeighbor);
 			getCommonAncestor(rightNeighbor)->updateKey(rightNeighbor, rightNeighbor->entries[0]);
+			rightNeighbor->getParent()->deleteChild(rightNeighbor);
+			
 		}
 		else
 		{
 			vector<DataEntry> merged = merge(entries, leftNeighbor->entries);
 			leftNeighbor->entries = merged;
-			leftNeighbor ->getParent()->deleteChild(this);
 			getCommonAncestor(leftNeighbor)->updateKey(this, this->entries[0]);
+			leftNeighbor ->getParent()->deleteChild(this);
+			
 		}
 		
 

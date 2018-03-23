@@ -229,19 +229,21 @@ void InnerNode::insertChild(TreeNode* newChild, const Key& key) {
 		
 	}
 }
-bool redistribute(vector<Key> &need, vector<Key> &has, Key deleted) {
+bool redistribute(vector<Key> &need, vector<Key> &has, Key deleted, Key parentKey, Key &erased) {
 
 	
 	if (has.size() > kInnerOrder)
 	{
 		if (deleted > *has.begin())
 		{
-			need.insert(need.begin(), *(has.end() - 1));
+			need.insert(need.begin(), parentKey);
+			erased = *(has.end() - 1);
 			has.erase(has.end() - 1);
 		}
 		else
 		{
-			need.insert(need.end(), *(has.begin()));
+			need.insert(need.end(), parentKey);
+			erased = *(has.begin());
 			has.erase(has.begin());
 		}
 
@@ -296,63 +298,79 @@ vector<TreeNode*> mergeChildren(vector<TreeNode*> &left, vector<TreeNode*> &righ
 }
 void InnerNode::deleteChild(TreeNode* childToRemove) {
     // TO DO: implement this function
-	int childIndex = 0;
+	int childIndex = -1;
 	for (unsigned i = 0; i < children.size(); ++i) {
 		if (children[i] == childToRemove) {
 			childIndex = i;
 			break;
 		}
 	}
+	assert(childIndex >= 0);
+	assert(!keys.empty());
 	LeafNode* leaf = dynamic_cast<LeafNode*>(childToRemove);
 	if (leaf)
 		leaf->updateNeighborsDeletion();
 	
 	Key deleted;
 	children.erase(children.begin() + childIndex);
-	if (childIndex == 0)
-	{
-		deleted = *keys.begin();
-		keys.erase(keys.begin());	
-	}
-	else
-	{
-		deleted = *(keys.begin() + (childIndex - 1));
-		keys.erase(keys.begin() + (childIndex - 1));
-	}
 	
+		if (childIndex == 0)
+		{
+			deleted = *keys.begin();
+			keys.erase(keys.begin());	
+		}
+		else
+		{
+			deleted = *(keys.begin() + (childIndex - 1));
+			keys.erase(keys.begin() + (childIndex - 1));
+		}
+	
+
 
 	if (keys.size() < kInnerOrder) {
 		//need to redistribute or merge
 		InnerNode *rightNeighbor = nullptr;
 		InnerNode *leftNeighbor = nullptr;
+		Key parentKeyLeft = 0;
+		Key parentKeyRight = 0;
 		auto parentChildren = getParent()->children;
 		for (int i = 0; i < parentChildren.size(); i++)
 		{
 			if(parentChildren[i] == this)
 			{
 				if (i != 0)
+				{
+					parentKeyLeft = getParent()->keys[i - 1];
 					leftNeighbor = (InnerNode*)parentChildren[i - 1];
+				}
+					
 				if(i != parentChildren.size() - 1)
+				{
+					parentKeyRight = getParent()->keys[i];
 					rightNeighbor = (InnerNode*)parentChildren[i + 1];
+				}					
+					
 				break;
 			}
 		}
-	
-		if (rightNeighbor && redistribute(keys, rightNeighbor->keys, deleted))
+		Key erased = 0;
+		if (rightNeighbor && redistribute(keys, rightNeighbor->keys, deleted, parentKeyRight, erased))
 		{
 			auto beg = rightNeighbor->children.begin();
 			children.insert(children.end(), *beg);
 			rightNeighbor->children.erase(beg);
-			getParent()->updateKey(rightNeighbor, rightNeighbor->keys[0]);
+			getParent()->updateKey(rightNeighbor, erased);
+			
 			return;
 		}
 		
-		if (leftNeighbor && redistribute(keys, leftNeighbor->keys, deleted))
+		if (leftNeighbor && redistribute(keys, leftNeighbor->keys, deleted, parentKeyLeft, erased))
 		{
 			auto end = leftNeighbor->children.end() - 1;
 			children.insert(children.begin(), *end);
 			leftNeighbor->children.erase(end);
-			getParent()->updateKey(this, this->keys[0]);
+			getParent()->updateKey(this, erased);
+			
 			return;
 		}
 		if (rightNeighbor)
