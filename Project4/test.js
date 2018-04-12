@@ -8,9 +8,10 @@ load('query7.js')
 
 // fill in your database name
 // Your dbname is your uniqname
-dbname = 'dbname';
+dbname = 'cjscavon';
 
 // test query1
+
 var test1 = find_user('Bucklebury',dbname);
 if(test1.length === 42){
   print("test1 correct!")
@@ -28,7 +29,6 @@ cities_table(dbname)
 if(db.cities.find({"_id" : "Bucklebury"}).next().users.length === 42){
   print("test3 correct!")
 }
-
 
 // test query4
 var test4 = suggest_friends(5,dbname);

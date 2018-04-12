@@ -18,5 +18,30 @@ function suggest_friends(year_diff, dbname) {
     var pairs = [];
     // TODO: implement suggest friends
     // Return an array of arrays.
+    var users = db.users.find({}).toArray();
+    users.forEach(function(u){
+	if (u.gender == "male"){
+	    var up_tol = u.yob + year_diff;
+	    var low_tol = u.yob - year_diff;
+	    var matches = [];
+	    matches = db.users.find({
+		gender : "female", 
+		user_id : { 
+		    $nin : u.friends
+		},
+		hometown.city : u.hometown.city,
+		yob : {
+		    $lt : up_tol,
+		    $gt : low_tol
+		}
+	    }).toArray();
+	    var match = []
+	    matches.forEach(function(m){
+		Array.prototype.push.apply(match, u.user_id);
+		Array.prototype.push.apply(match, m.user_id);
+		Array.prototype.push.apply(pairs, u.user_id); 
+	    });
+	}
+    });
     return pairs;
 }
